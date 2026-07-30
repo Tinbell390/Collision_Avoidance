@@ -1,0 +1,83 @@
+@echo off
+setlocal
+
+echo ========================================
+echo        Project Setup
+echo ========================================
+
+REM --------------------------------------------------
+REM Python Virtual Environment
+REM --------------------------------------------------
+if not exist ".venv" (
+    echo.
+    echo [1/4] Creating Python virtual environment...
+    py -m venv .venv
+) else (
+    echo.
+    echo [1/4] Python virtual environment already exists.
+)
+
+call .venv\Scripts\activate.bat
+
+echo.
+echo [2/4] Installing Python packages...
+
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+
+REM --------------------------------------------------
+REM PlatformIO
+REM --------------------------------------------------
+echo.
+echo [3/4] Checking PlatformIO...
+
+if exist "%USERPROFILE%\.platformio\penv\Scripts\pio.exe" (
+    set PIO=%USERPROFILE%\.platformio\penv\Scripts\pio.exe
+) else (
+    where pio >nul 2>nul
+    if errorlevel 1 (
+        echo.
+        echo ERROR: PlatformIO not found.
+        echo Please install the PlatformIO VSCode extension.
+        exit /b 1
+    )
+    for /f "delims=" %%i in ('where pio') do (
+        set PIO=%%i
+        goto :found
+    )
+)
+
+:found
+
+echo Using: %PIO%
+
+REM --------------------------------------------------
+REM PlatformIO Environment
+REM --------------------------------------------------
+echo.
+echo [4/4] Checking PlatformIO environments...
+
+if not exist ".pio\build\vehicle" (
+    echo Creating Vehicle environment...
+    "%PIO%" run -e vehicle
+) else (
+    echo Vehicle environment already exists.
+)
+
+if not exist ".pio\build\monitor" (
+    echo Creating Monitor environment...
+    "%PIO%" run -e monitor
+) else (
+    echo Monitor environment already exists.
+)
+
+echo.
+echo ========================================
+echo  Setup Complete!
+echo ========================================
+echo.
+echo To activate the Python environment:
+echo.
+echo .venv\Scripts\activate.bat
+
+pause
