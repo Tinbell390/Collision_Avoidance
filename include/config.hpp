@@ -35,8 +35,12 @@ constexpr int firstspeed = 100;                 // 初期速度[cm/s]
 constexpr int median_window_size = 7;
 
 // PIDコントローラパラメータ
+constexpr float F_KP = 1.0;
+constexpr float F_KI = 1.0;
+constexpr float F_KD = 0.0;
+
 constexpr int MAX_INTEGRAL = 200;
-constexpr int FirstTargetSpeed = 100;
+
 constexpr int MAX_PWM = 200;
 constexpr int MIN_PWM = 10;
 
@@ -80,6 +84,7 @@ extern uint32_t LAST_US;
 extern int CurrentSpeed;
 extern int CullentPosition;
 extern int targetSpeed;
+extern int FirstTargetSpeed;
 
 extern uint32_t enterTime;
 extern uint32_t exitTime;
