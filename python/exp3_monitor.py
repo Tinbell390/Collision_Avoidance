@@ -44,6 +44,11 @@ class SerialManager:
         self.current_vehicle = None
         self.csv_buffer = []
 
+        # 転送予定ファイル数の管理
+        self.expected_count = None
+        self.received_count = 0
+
+
     # -------------------------------------------------
     # GUIへログ表示
     # -------------------------------------------------
@@ -186,6 +191,25 @@ class SerialManager:
                     continue
 
                 # -------------------------------
+                # 転送予定件数
+                # -------------------------------
+                if text.startswith("COUNT"):
+
+                    parts = text.split()
+
+                    if len(parts) == 2:
+                        self.expected_count = int(parts[1])
+                    else:
+                        self.expected_count = None
+
+                    self.received_count = 0
+
+                    self.log(f"Expecting {self.expected_count} log file(s)")
+
+                    continue
+
+
+                # -------------------------------
                 # CSV開始
                 # -------------------------------
                 if text.startswith("BEGIN"):
@@ -213,6 +237,16 @@ class SerialManager:
 
                     self.receiving_csv = False
                     self.current_vehicle = None
+
+                    self.received_count += 1
+
+                    # 予定件数すべて受信したらACKを返す
+                    if (self.expected_count is not None
+                            and self.received_count >= self.expected_count):
+
+                        self.send("ACK")
+                        self.expected_count = None
+                        self.received_count = 0
 
                     continue
 

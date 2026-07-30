@@ -5,6 +5,7 @@
 
 //モニタ用
 File file[vehiclecount];
+bool fileHasData[vehiclecount];   // 実際にSTATUSを受信して記録したかどうか
 
 //--------------------------------------------------
 //フラッシュメモリクリア関数
@@ -45,6 +46,8 @@ void setup_logger(){
 void OpenFile(){
     for (int i = 0; i < vehiclecount; i++) {
 
+        fileHasData[i] = false;   // 新しい試行のためリセット
+
         String filename = "/log" + String(i) + ".csv";
 
         file[i] = LittleFS.open(filename, FILE_WRITE);
@@ -67,6 +70,8 @@ void OpenFile(){
 void WriteLog(int i, StatusData data){
 
     if (!file[i]) return;
+
+    fileHasData[i] = true;   // このファイルは実データを持つ
 
     file[i].print(data.time_us);
     file[i].print(",");
@@ -94,7 +99,17 @@ void CloseFile(){
 //--------------------------------------------------
 void sendLog(){
 
+    // 実際にデータがある車両数を数える
+    int sendCount = 0;
     for(int i = 0; i < vehiclecount; i++){
+        if (fileHasData[i]) sendCount++;
+    }
+
+    Serial.printf("COUNT %d\n", sendCount);
+
+    for(int i = 0; i < vehiclecount; i++){
+
+        if (!fileHasData[i]) continue;   // 記録がない車両はスキップ
 
         String filename = "/log" + String(i) + ".csv";
 
@@ -130,6 +145,8 @@ void sendLog(){
             if(cmd == "ACK"){
 
                 for(int i = 0; i < vehiclecount; i++){
+                    if (!fileHasData[i]) continue;   // 記録がある分だけ削除
+
                     String filename = "/log" + String(i) + ".csv";
                     LittleFS.remove(filename);
                 }

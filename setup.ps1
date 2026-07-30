@@ -73,6 +73,14 @@ else {
     Write-Host "Monitor environment already exists."
 }
 
+if (-Not (Test-Path ".pio\build\espnow")) {
+    Write-Host "Creating espnow environment..."
+    & $PIO run -e espnow
+}
+else {
+    Write-Host "espnow environment already exists."
+}
+
 Write-Host ""
 Write-Host "========================================"
 Write-Host " Setup Complete!"
