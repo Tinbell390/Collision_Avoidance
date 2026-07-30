@@ -13,7 +13,6 @@ StatusData CurrentSTATUS;
 void setup(){
     Serial.begin(115200);
     setup_ESPNOW();
-    set_Vehicle();
     setup_motor();
     setup_sensor();
 

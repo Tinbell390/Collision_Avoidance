@@ -9,7 +9,6 @@
 void setup(){
     Serial.begin(115200);
     setup_ESPNOW();
-    set_Monitor();
     setup_logger();
 }
 
