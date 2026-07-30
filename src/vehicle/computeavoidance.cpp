@@ -7,9 +7,9 @@
 //--------------------------------------------------
 // 衝突回避速度算出関数
 //--------------------------------------------------
-int computeAvoidanceSpeed(int OtherEnterTime,int OtherExitTime){
-    int MyEnterTime = enterTime;
-    int MyExitTime = exitTime;
+int computeAvoidanceSpeed(uint32_t OtherEnterTime,uint32_t OtherExitTime){
+    uint32_t MyEnterTime = enterTime;
+    uint32_t MyExitTime = exitTime;
     int NewTargetSpeed ;
     uint32_t now = micros() - START_US;
     /////////////// 
@@ -20,11 +20,11 @@ int computeAvoidanceSpeed(int OtherEnterTime,int OtherExitTime){
     }
     else if (OtherEnterTime>MyEnterTime){
         //自分が相手より早く突入
-        desiredEnter = enterTime - margin_us;       //50ms早く突入
+        desiredEnter = OtherEnterTime - margin_us - (exitTime - enterTime);
     }
     else{
         //自分が相手より遅く突入
-        desiredEnter = OtherExitTime + margin_us; // 50ms遅く突入
+        desiredEnter = OtherExitTime + margin_us; 
     }
 
     if (desiredEnter <= now) return targetSpeed;
@@ -35,7 +35,7 @@ int computeAvoidanceSpeed(int OtherEnterTime,int OtherExitTime){
 
     uint32_t remainTime = desiredEnter - now;
 
-    NewTargetSpeed = constrain(remain * 1000000UL / remainTime,MIN_SPEED,MAX_SPEED);
+    NewTargetSpeed = (int)constrain(remain * 1000000UL / remainTime,MIN_SPEED,MAX_SPEED);
     ////////////////
     return NewTargetSpeed;
 }

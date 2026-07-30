@@ -1,5 +1,5 @@
 #ifndef COMPUTAVOIDANCE_H
 #define COMPUTAVOIDANCE_H
-int computeAvoidanceSpeed(int OtherEnterTime,int OtherExitTime);
+int computeAvoidanceSpeed(uint32_t OtherEnterTime,uint32_t OtherExitTime);
 
 #endif
