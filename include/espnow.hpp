@@ -6,11 +6,50 @@
 #include <esp_now.h>
 #include "config.hpp"
 
+// パケット種類
+//==================================================
+enum class PacketType : uint8_t{
+    START = 0,
+    FINISH,
+    STATUS,
+    SET_SPEED,
+    GAIN
+};
+
+// パケット
+//==================================================
+struct PacketHead{
+    PacketType type;
+};
+
+struct STARTPacket{
+    PacketHead head;
+    bool CollisionFlag;
+};
+
+struct FINISHPacket{
+    PacketHead head;
+};
+
+struct STATUSPacket{
+    PacketHead head;
+
+    StatusData payload;
+};
+
+struct SETSPEEDPacket{
+    PacketHead head;
+    uint16_t targetSpeed;   
+};
+
+struct GAINPacket{
+    PacketHead head;
+    float KP;
+    float KI;
+    float KD;
+};
+
 void setup_ESPNOW();
-
-void set_Monitor();
-
-void set_Vehicle();
 
 void SendSTART(bool collision);
 

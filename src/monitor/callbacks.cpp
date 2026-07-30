@@ -88,3 +88,18 @@ void OnSetSpeedPacket(int speed){
 void OnGAINPacket(float kp,float ki,float kd){
     return ;
 }
+
+//--------------------------------------------------
+// モニター受信コールバック関数
+//--------------------------------------------------
+void OnRecvData(const uint8_t *mac_addr,const uint8_t *data,int len){
+    const PacketHead *head=reinterpret_cast<const PacketHead *>(data);
+
+    if (head->type != PacketType::STATUS) return;
+
+    STATUSPacket packet;
+    memcpy(&packet, data, sizeof(packet));  
+    StatusData payload=packet.payload;
+
+    OnStatusPacket(mac_addr,payload);
+}

@@ -4,50 +4,6 @@
 #include "sensor.hpp"
 #include "callbacks.hpp"
 
-
-// パケット種類
-//==================================================
-enum class PacketType : uint8_t{
-    START = 0,
-    FINISH,
-    STATUS,
-    SET_SPEED,
-    GAIN
-};
-
-// パケット
-//==================================================
-struct PacketHead{
-    PacketType type;
-};
-
-struct STARTPacket{
-    PacketHead head;
-    bool CollisionFlag;
-};
-
-struct FINISHPacket{
-    PacketHead head;
-};
-
-struct STATUSPacket{
-    PacketHead head;
-
-    StatusData payload;
-};
-
-struct SETSPEEDPacket{
-    PacketHead head;
-    uint16_t targetSpeed;   
-};
-
-struct GAINPacket{
-    PacketHead head;
-    float KP;
-    float KI;
-    float KD;
-};
-
 const uint8_t broadcastAddress[6] ={0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 
 //--------------------------------------------------
@@ -64,78 +20,8 @@ void setup_ESPNOW(){
     broadcast.encrypt = false;
 
     esp_now_add_peer(&broadcast);
-}
 
-//--------------------------------------------------
-// モニター受信コールバック関数
-//--------------------------------------------------
-void Recv_Monitor(const uint8_t *mac_addr,const uint8_t *data,int len){
-    const PacketHead *head=reinterpret_cast<const PacketHead *>(data);
-
-    if (head->type != PacketType::STATUS) return;
-
-    STATUSPacket packet;
-    memcpy(&packet, data, sizeof(packet));  
-    StatusData payload=packet.payload;
-
-    OnStatusPacket(mac_addr,payload);
-}
-
-//-------------------------------------------------
-// モニター受信コールバックセット
-//--------------------------------------------------
-void set_Monitor(){
-    esp_now_register_recv_cb(Recv_Monitor);
-}
-
-//--------------------------------------------------
-// ビークル受信コールバック関数
-//--------------------------------------------------
-void Recv_Vehicle(const uint8_t *mac_addr,const uint8_t *data,int len){
-    const PacketHead *head=reinterpret_cast<const PacketHead *>(data);
-
-    switch (head->type){
-        case PacketType::START:{
-            const STARTPacket *packet=reinterpret_cast<const STARTPacket *>(data);
-            OnStartPacket(packet->CollisionFlag);
-            break;
-        }
-        case PacketType::FINISH:{
-            OnFinishPacket();
-            break;
-        }
-
-        case PacketType::STATUS:{
-            STATUSPacket packet;
-            memcpy(&packet, data, sizeof(packet));  
-            StatusData payload=packet.payload;
-            OnStatusPacket(mac_addr,payload);
-            break;
-        }
-
-        case PacketType::SET_SPEED:{
-            const SETSPEEDPacket *packet=reinterpret_cast<const SETSPEEDPacket *>(data);
-            int speed = packet->targetSpeed;
-            OnSetSpeedPacket(speed);
-            break;
-        }
-        case PacketType::GAIN:{
-            const GAINPacket *packet=reinterpret_cast<const GAINPacket *>(data);
-            float kp=packet->KP;
-            float ki=packet->KI;
-            float kd=packet->KD;
-            OnGAINPacket(kp,ki,kd);
-            break;
-
-        }
-    }
-}
-
-//--------------------------------------------------
-// モニター受信コールバックセット
-//--------------------------------------------------
-void set_Vehicle(){
-    esp_now_register_recv_cb(Recv_Vehicle);
+    esp_now_register_recv_cb(OnRecvData);
 }
 
 //--------------------------------------------------
