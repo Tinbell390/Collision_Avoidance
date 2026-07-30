@@ -82,7 +82,6 @@ extern uint32_t START_US;
 extern uint32_t LAST_US;
 
 extern int CurrentSpeed;
-extern int CullentPosition;
 extern int targetSpeed;
 extern int FirstTargetSpeed;
 
