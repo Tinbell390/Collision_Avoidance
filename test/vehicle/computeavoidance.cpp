@@ -4,6 +4,9 @@
 #include "callbacks.hpp"
 #include "controller.hpp"
 
+//--------------------------------------------------
+// 衝突回避速度算出関数
+//--------------------------------------------------
 int computeAvoidanceSpeed(int OtherEnterTime,int OtherExitTime){
     int MyEnterTime = enterTime;
     int MyExitTime = exitTime;
