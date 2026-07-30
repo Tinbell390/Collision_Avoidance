@@ -18,3 +18,4 @@ Windows
 
 ```bash
 .\setup.ps1
+```
