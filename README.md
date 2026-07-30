@@ -13,7 +13,7 @@ Linux
 ```bash
 ./setup.sh
 
-
+```
 Windows
 
 ```bash
