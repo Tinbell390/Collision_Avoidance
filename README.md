@@ -12,3 +12,9 @@ Linux
 
 ```bash
 ./setup.sh
+
+
+Windows
+
+```bash
+.\setup.ps1
