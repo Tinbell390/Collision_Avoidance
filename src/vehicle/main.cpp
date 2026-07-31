@@ -30,8 +30,10 @@ void loop()
         CurrentSTATUS.time_us=micros() - START_US;
         CurrentSTATUS.speed = CurrentSpeed;
         CurrentSTATUS.pwm=CurrentPWM;
-        CurrentSTATUS.enterTime=enterTime;
-        CurrentSTATUS.exitTime=exitTime;
+        if(LoneryFlag){        
+            CurrentSTATUS.enterTime=enterTime;
+            CurrentSTATUS.exitTime=exitTime;
+        }
         SendSTATUS(CurrentSTATUS);
     }
     else{

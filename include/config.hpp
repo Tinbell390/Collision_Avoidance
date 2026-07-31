@@ -89,7 +89,8 @@ extern uint32_t enterTime;
 extern uint32_t exitTime;
 
 extern volatile bool RunFlag;
-extern bool CollisionFlag;
+extern volatile bool CollisionFlag;
+extern volatile bool LoneryFlag;
 
 extern float KP;
 extern float KI;

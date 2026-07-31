@@ -21,14 +21,18 @@ void loop(){
     cmd.trim();
 
     if (cmd == "start"){
-        SendSTART(false);
+        SendSTART(false,false);
         OpenFile();
         Serial.println("Send START (CollisionFlag = false)");
     }
     else if (cmd == "start collision"){
-        SendSTART(true);
+        SendSTART(true,false);
         Serial.println("Send START (CollisionFlag = true)");
     }
+    else if (cmd == "start lonery"){
+        SendSTART(false,true);
+        Serial.println("Send START");
+    }    
     else if (cmd.startsWith("speed ")){
         // "speed "以降を整数に変換
         int speed = cmd.substring(6).toInt();

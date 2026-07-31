@@ -9,10 +9,11 @@
 //--------------------------------------------------
 // STARTパケット受信処理関数
 //--------------------------------------------------
-void OnStartPacket(bool collision){
+void OnStartPacket(bool collision,bool lonery){
     START_US=micros();
     RunFlag = true;
     CollisionFlag = collision;
+    LoneryFlag = lonery;
     targetSpeed=FirstTargetSpeed;
     ClearController();
     clearIntervalBuffer();
@@ -31,7 +32,7 @@ void OnFinishPacket(){
 //--------------------------------------------------
 void OnStatusPacket(const uint8_t *mac_addr,StatusData payload){
 
-    if (payload.enterTime == INVALID_TIME || payload.exitTime  == INVALID_TIME){
+    if (payload.enterTime == INVALID_TIME || payload.exitTime  == INVALID_TIME || LoneryFlag){
         return;
     }
 
@@ -68,7 +69,7 @@ void OnRecvData(const uint8_t *mac_addr,const uint8_t *data,int len){
     switch (head->type){
         case PacketType::START:{
             const STARTPacket *packet=reinterpret_cast<const STARTPacket *>(data);
-            OnStartPacket(packet->CollisionFlag);
+            OnStartPacket(packet->CollisionFlag,packet->lonelyFlag);
             break;
         }
         case PacketType::FINISH:{

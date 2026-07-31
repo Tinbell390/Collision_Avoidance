@@ -147,7 +147,7 @@ class SerialManager:
     # -------------------------------------------------
     def send_start(self):
 
-        self.send("start")
+        self.send("start lonery")
 
     # -------------------------------------------------
     # FINISH

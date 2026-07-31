@@ -27,11 +27,12 @@ void setup_ESPNOW(){
 //--------------------------------------------------
 // START送信関数
 //--------------------------------------------------
-void SendSTART(bool collision){
+void SendSTART(bool collision,bool lonely){
     STARTPacket packet;
 
     packet.head.type = PacketType::START;
     packet.CollisionFlag = collision;
+    packet.lonelyFlag = lonely;
 
     esp_now_send(broadcastAddress,reinterpret_cast<uint8_t*>(&packet),sizeof(packet));
 }

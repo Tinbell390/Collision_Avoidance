@@ -25,6 +25,7 @@ struct PacketHead{
 struct STARTPacket{
     PacketHead head;
     bool CollisionFlag;
+    bool lonelyFlag;
 };
 
 struct FINISHPacket{
@@ -51,7 +52,7 @@ struct GAINPacket{
 
 void setup_ESPNOW();
 
-void SendSTART(bool collision);
+void SendSTART(bool collision,bool lonely);
 
 void SendFINISH();
 
