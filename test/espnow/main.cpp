@@ -261,7 +261,7 @@ void SendData(const uint8_t *mac_addr){
     Serial.print(" exitTime  : ");
     Serial.println(packet.payload.exitTime);
 
-    if (esp_now_send(mac_addr,④,sizeof(packet)) == ESP_OK){
+    if (esp_now_send(mac_addr,②,sizeof(packet)) == ESP_OK){
         Serial.println("DATA Send OK");
     }
     else{
@@ -282,7 +282,7 @@ void OnDataRecv(const uint8_t *mac_addr,const uint8_t *data,int len){
     // まずヘッダだけを見て種別を判定する
     const PacketHeader *header = (const PacketHeader *)data;
 
-    switch(②){
+    switch(③){
         case HELLO:{
             if (len != sizeof(Packet)){
                 Serial.println("Invalid HELLO Packet Size");
@@ -366,7 +366,7 @@ void OnDataRecv(const uint8_t *mac_addr,const uint8_t *data,int len){
             Serial.print("Recv : DATA from ");
             PrintMacAddress(mac_addr);
 
-            DataPacket *recvPacket = ③;
+            DataPacket *recvPacket = ④;
 
             Serial.println("DATA:");
 
@@ -483,36 +483,23 @@ void loop(){
 // 1. memcpy(peerInfo.peer_addr, mac_addr, 6)
 // 2. peerInfo.peer_addr = mac_addr
 // 3. strcpy(peerInfo.peer_addr, mac_addr)
+// 4. *peerInfo.peer_addr = *mac_addr
+// 
 // ②
-// 1. len
+// 1. (uint8_t *)&packet
+// 2. packet
+// 3. &packet
+// 4. (uint8_t *)packet
+// 
+// ③
+// 1. header.type
 // 2. data.type
 // 3. header->type
-// ③
+// 4. len
+// 
+// ④
 // 1. (DataPacket *)data
 // 2. (Packet *)data
 // 3. data
 // 4. (StatusData *)data
-// ④
-// 1. (uint8_t *)&packet
-// 2. packet
-// 3. &packet
 
-
-// 実験1　espnow
-// 2台のSeeed XIAO ESP32C3を用意する．
-// 2台のPCを用意する．
-// espnow/main.cppの穴埋めを行う．
-// PCとESP32C3をケーブルで接続する．
-// PlatformIOの環境をenv:espnowに設定
-// uploadを実行する(この時，アップロードがうまく行かない場合は，ケーブルを一度抜いてbootボタンを押し込んだままケーブルを接続する．この場合はアップロードが終わったあと一度ケーブルを抜き差しする)
-// python/exp1_monitor.pyを実行する
-// COM PORT で/dev/ttyACM*を選択してConnect
-// HELLOを送信しあって相手のMACアドレスを確認
-// 相手のMACアドレスにPINGを送信して導通を確認
-// 相手のMACアドレスをAddPeerする
-// 相手のMACアドレスにPINGを送信して導通を確認
-// 相手のMACアドレスにDATA REQUESTを行ってダミーデータの受信を確認
-// Disconnectでシリアル通信を終了する
-
-// 考察課題
-// AddPeer前にPINGが送信できなかった理由は？espnowの性質をもとに考察せよ
