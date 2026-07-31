@@ -24,5 +24,6 @@ Linux
 Windows
 
 ```bash
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\setup.ps1
 ```

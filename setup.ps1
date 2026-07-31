@@ -17,14 +17,15 @@ else {
     Write-Host "[1/4] Python virtual environment already exists."
 }
 
-# 仮想環境有効化
-& ".\.venv\Scripts\Activate.ps1"
 
 Write-Host ""
 Write-Host "[2/4] Installing Python packages..."
 
-python -m pip install --upgrade pip
-pip install -r requirements.txt
+$VenvPython = ".\.venv\Scripts\python.exe"
+
+& $VenvPython -m pip install --upgrade pip
+& $VenvPython -m pip install -r requirements.txt
+
 
 #--------------------------------------------------
 # PlatformIO
