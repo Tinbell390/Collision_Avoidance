@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <esp_now.h>
+#include "config.hpp"
 
 // 実験1で使用する
 // esp-nowの導通確認実験
@@ -39,14 +40,6 @@ struct Packet{
     PacketHeader header;
 };
 
-struct StatusData{//espnowで共有するデータ
-    uint32_t time_us;
-    uint32_t speed;
-    uint8_t pwm;
-    uint32_t enterTime;
-    uint32_t exitTime;
-};
-
 // データパケット（ヘッダ + ダミーデータ本体）
 struct DataPacket{
     PacketHeader header;
@@ -68,7 +61,7 @@ void setup(){
     WiFi.mode(WIFI_STA);
 
     // ESP-NOW初期化
-    if (esp_now_init() != ESP_OK)    {
+    if (esp_now_init() != ESP_OK){
         Serial.println("ESP-NOW Init Failed");
         while (true);
     }
@@ -89,7 +82,7 @@ void AddPeer(const uint8_t *mac_addr){
     Serial.print("Add Peer : ");
     PrintMacAddress(mac_addr);
 
-    if(esp_now_is_peer_exist(mac_addr))    {
+    if(esp_now_is_peer_exist(mac_addr)){
         Serial.println("Peer already exists");
         return;
     }
@@ -106,10 +99,10 @@ void AddPeer(const uint8_t *mac_addr){
     esp_err_t result = esp_now_add_peer(&peerInfo);
 
 
-    if(result == ESP_OK)    {
+    if(result == ESP_OK){
         Serial.println("Peer Added");
     }
-    else    {
+    else{
         Serial.print("Peer Add Failed : ");
         Serial.println(result);
     }
@@ -123,7 +116,7 @@ void SendHello(){
     packet.header.type = HELLO;
 
     Serial.println();
-    if (esp_now_send(broadcastAddress, (uint8_t *)&packet, sizeof(packet)) == ESP_OK){
+    if(esp_now_send(broadcastAddress, (uint8_t *)&packet, sizeof(packet)) == ESP_OK){
         Serial.println("Send : HELLO");
     }
     else{
@@ -155,7 +148,7 @@ void SendPing(const uint8_t *mac_addr){
     Serial.print("Send : PING -> ");
     PrintMacAddress(mac_addr);
 
-    if (esp_now_send(mac_addr, (uint8_t *)&packet, sizeof(packet)) == ESP_OK){
+    if(esp_now_send(mac_addr, (uint8_t *)&packet, sizeof(packet)) == ESP_OK){
         Serial.println("PING Send OK");
     }
     else{
@@ -175,7 +168,7 @@ void SendPong(const uint8_t *mac_addr){
     Serial.print("Send : PONG -> ");
     PrintMacAddress(mac_addr);
 
-    if (esp_now_send(mac_addr, (uint8_t *)&packet, sizeof(packet)) == ESP_OK){
+    if(esp_now_send(mac_addr, (uint8_t *)&packet, sizeof(packet)) == ESP_OK){
         Serial.println("PONG Send OK");
     }
     else{
@@ -197,7 +190,7 @@ void SendDataRequest(const uint8_t *mac_addr){
     Serial.print("Send : DATA_REQ -> ");
     PrintMacAddress(mac_addr);
 
-    if (esp_now_send(mac_addr, (uint8_t *)&packet, sizeof(packet)) == ESP_OK){
+    if(esp_now_send(mac_addr, (uint8_t *)&packet, sizeof(packet)) == ESP_OK){
         Serial.println("DATA_REQ Send OK");
     }
     else{
@@ -274,7 +267,7 @@ void SendData(const uint8_t *mac_addr){
 //--------------------------------------------------
 void OnDataRecv(const uint8_t *mac_addr,const uint8_t *data,int len){
     // ヘッダ長すら無い場合は不正パケットとして破棄
-    if (len < (int)sizeof(PacketHeader)){
+    if(len < (int)sizeof(PacketHeader)){
         Serial.println("Invalid Packet Size");
         return;
     }
@@ -408,23 +401,23 @@ void OnDataRecv(const uint8_t *mac_addr,const uint8_t *data,int len){
 // メインループ
 //--------------------------------------------------
 void loop(){
-    if (Serial.available()){
+    if(Serial.available()){
         String command = Serial.readStringUntil('\n');
         command.trim();
 
         // HELLO送信
-        if (command == "HELLO"){
+        if(command == "HELLO"){
             SendHello();
         }
 
         // Peer登録
-        else if (command.startsWith("addpeer")){
+        else if(command.startsWith("addpeer")){
             uint8_t mac[6];
 
             // "addpeer "以降を取得
             String macString = command.substring(8);
 
-            if (sscanf(macString.c_str(),
+            if(sscanf(macString.c_str(),
                        "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
                        &mac[0], &mac[1], &mac[2],
                        &mac[3], &mac[4], &mac[5]) == 6){
@@ -439,13 +432,13 @@ void loop(){
         }
 
         // PING送信
-        else if (command.startsWith("PING")){
+        else if(command.startsWith("PING")){
             uint8_t mac[6];
 
             // "PING "以降を取得
             String macString = command.substring(5);
 
-            if (sscanf(macString.c_str(),
+            if(sscanf(macString.c_str(),
                        "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
                        &mac[0], &mac[1], &mac[2],
                        &mac[3], &mac[4], &mac[5]) == 6){
@@ -457,13 +450,13 @@ void loop(){
         }
 
         // DATAREQ送信
-        else if (command.startsWith("DATAREQ")){
+        else if(command.startsWith("DATAREQ")){
             uint8_t mac[6];
 
             // "DATAREQ "以降を取得
             String macString = command.substring(8);
 
-            if (sscanf(macString.c_str(),
+            if(sscanf(macString.c_str(),
                        "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
                        &mac[0], &mac[1], &mac[2],
                        &mac[3], &mac[4], &mac[5]) == 6){

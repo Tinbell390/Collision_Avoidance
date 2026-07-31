@@ -1,11 +1,6 @@
 #ifndef ESPNOW_HPP
 #define ESPNOW_HPP
 
-#include <Arduino.h>
-#include <WiFi.h>
-#include <esp_now.h>
-#include "config.hpp"
-
 // パケット種類
 //==================================================
 enum class PacketType : uint8_t{

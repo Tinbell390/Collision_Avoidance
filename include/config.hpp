@@ -1,8 +1,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
-
 #include <Arduino.h>
-#include <LittleFS.h>
+
 constexpr uint32_t INVALID_TIME = UINT32_MAX;
 
 //--------------------------------------------------

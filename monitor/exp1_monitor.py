@@ -1,7 +1,7 @@
 """
 exp1_monitor.py
 
-実験1（ESP-NOW 導通確認実験）用のシリアルモニタGUI
+実験1用のシリアルモニタ
 
 必要ライブラリ
     pip install pyserial

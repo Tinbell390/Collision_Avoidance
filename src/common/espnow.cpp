@@ -1,3 +1,5 @@
+#include<WiFi.h>
+#include<esp_now.h>
 #include "espnow.hpp"
 #include "logger.hpp"
 #include "motor.hpp"

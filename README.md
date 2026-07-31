@@ -3,7 +3,14 @@
 ## 必要なソフト
 
 - VSCode
-- PlatformIO
+- PlatformIO IED
+- C/C++
+- C/C++ Extension Pack
+- Python
+- Pylance
+- Python Debugger
+- Python Enviroments
+
 - Python 3.11以上
 
 ## 初回セットアップ

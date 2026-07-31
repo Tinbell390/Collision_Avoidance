@@ -1,5 +1,7 @@
 """
-esp32_monitor.py
+exp2_monitor.py
+
+実験2用のシリアルモニタ
 
 必要ライブラリ
     pip install pyserial

@@ -27,9 +27,7 @@ int GetVehicleIndex(const uint8_t *mac_addr){
     // 既登録か検索
     for(int i = 0; i < vehiclecount; i++){
 
-        if(addressRegistered[i] &&
-           memcmp(vehicleaddress[i], mac_addr, 6) == 0){
-
+        if(addressRegistered[i] &&memcmp(vehicleaddress[i], mac_addr, 6) == 0){
             return i;
         }
     }
@@ -95,7 +93,7 @@ void OnGAINPacket(float kp,float ki,float kd){
 void OnRecvData(const uint8_t *mac_addr,const uint8_t *data,int len){
     const PacketHead *head=reinterpret_cast<const PacketHead *>(data);
 
-    if (head->type != PacketType::STATUS) return;
+    if(head->type != PacketType::STATUS) return;
 
     STATUSPacket packet;
     memcpy(&packet, data, sizeof(packet));  
