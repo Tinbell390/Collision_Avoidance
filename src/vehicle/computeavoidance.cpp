@@ -5,7 +5,7 @@
 //--------------------------------------------------
 // 衝突回避速度算出関数
 //--------------------------------------------------
-int computeAvoidanceSpeed(uint32_t OtherEnterTime,uint32_t OtherExitTime){
+int calculateCollisionAvoidanceSpeed(uint32_t OtherEnterTime,uint32_t OtherExitTime){
     uint32_t MyEnterTime = predictTimeToIntersection();
     uint32_t MyExitTime = predictTimeToExitIntersection();
     int NewTargetSpeed ;

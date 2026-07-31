@@ -36,7 +36,7 @@ void OnStatusPacket(const uint8_t *mac_addr,StatusData payload){
         return;
     }
 
-    targetSpeed = computeAvoidanceSpeed(payload.enterTime,payload.exitTime);
+    targetSpeed = calculateCollisionAvoidanceSpeed(payload.enterTime,payload.exitTime);
 
     return;
 }
