@@ -69,7 +69,9 @@ void OpenFile(){
 //--------------------------------------------------
 void WriteLog(int i, StatusData data){
 
-    if (!file[i]) return;
+    if (!file[i]) {
+        return;
+    }
 
     fileHasData[i] = true;   // このファイルは実データを持つ
 

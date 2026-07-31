@@ -1,5 +1,6 @@
 #ifndef ESPNOW_HPP
 #define ESPNOW_HPP
+#include"config.hpp"
 
 // パケット種類
 //==================================================

@@ -27,10 +27,12 @@ void loop(){
     }
     else if (cmd == "start collision"){
         SendSTART(true,false);
+        OpenFile();
         Serial.println("Send START (CollisionFlag = true)");
     }
     else if (cmd == "start lonery"){
         SendSTART(false,true);
+        OpenFile();
         Serial.println("Send START");
     }    
     else if (cmd.startsWith("speed ")){

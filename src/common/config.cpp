@@ -11,7 +11,7 @@ volatile bool SensorONFlag = false;
 
 uint32_t START_US = 0;
 uint32_t LAST_US = 0;
-
+int FirstTargetSpeed = basespeed;
 int CurrentSpeed = 0;
 int targetSpeed = FirstTargetSpeed;
 uint32_t enterTime;
@@ -19,9 +19,10 @@ uint32_t exitTime;
 
 
 volatile bool RunFlag = false;
-bool CollisionFlag = false;
+volatile bool CollisionFlag = false;
+volatile bool LoneryFlag = false;
 
-int FirstTargetSpeed = basespeed;
+
 
 float KP=F_KP;
 float KI=F_KI;
