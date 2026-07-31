@@ -29,7 +29,7 @@ constexpr int LINE_PITCH = 10;
 constexpr int DIST_TO_INTERSECTION_ENTRY = 500; // 交差点入口までの距離 [mm]
 constexpr int DIST_TO_INTERSECTION_EXIT  = 700; // 交差点出口までの距離 [mm]
 constexpr int VEHICLE_LENGTH             = 150; // 車体全長 [mm]
-constexpr int firstspeed = 100;                 // 初期速度[cm/s]
+constexpr int basespeed = 100;                 // 初期速度[cm/s]
 
 // メディアンフィルタパラメータ
 constexpr int median_window_size = 7;

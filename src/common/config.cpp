@@ -21,7 +21,7 @@ uint32_t exitTime;
 volatile bool RunFlag = false;
 bool CollisionFlag = false;
 
-int FirstTargetSpeed = 100;
+int FirstTargetSpeed = basespeed;
 
 float KP=F_KP;
 float KI=F_KI;
