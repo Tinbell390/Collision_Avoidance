@@ -36,5 +36,5 @@ uint8_t PIDcontroller(int currentSpeed, int targetSpeed){
 void ClearController(){
     integral=0;
     previousError=0;
-    targetSpeed = firstspeed;
+    targetSpeed = basespeed;
 }
