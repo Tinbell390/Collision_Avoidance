@@ -60,7 +60,7 @@ void OpenFile(){
         Serial.printf("%s opened\n", filename.c_str());
 
         // ヘッダ
-        file[i].println("Time_s,Speed,PWM");
+        file[i].println("Time_us,Speed,PWM");
     }
 }
 

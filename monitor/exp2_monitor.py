@@ -6,6 +6,7 @@ exp2_monitor.py
 必要ライブラリ
     pip install pyserial
 """
+import csv
 import queue
 import serial
 import os
@@ -17,6 +18,14 @@ from datetime import datetime
 import tkinter as tk
 from tkinter import ttk
 from tkinter.scrolledtext import ScrolledText
+
+import matplotlib
+matplotlib.use("TkAgg")
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import (
+    FigureCanvasTkAgg,
+    NavigationToolbar2Tk
+)
 
 
 # =====================================================
@@ -34,6 +43,9 @@ class SerialManager:
 
         # GUIへ渡すメッセージ
         self.message_queue = queue.Queue()
+
+        # 保存されたCSVパスをGUIへ渡す(グラフ表示用)
+        self.plot_queue = queue.Queue()
 
         # CSV受信
         self.receiving_csv = False
@@ -60,6 +72,16 @@ class SerialManager:
 
         try:
             return self.message_queue.get_nowait()
+        except queue.Empty:
+            return None
+
+    # -------------------------------------------------
+    # GUI用:保存されたCSVファイルパス取得
+    # -------------------------------------------------
+    def get_plot_request(self):
+
+        try:
+            return self.plot_queue.get_nowait()
         except queue.Empty:
             return None
 
@@ -299,6 +321,9 @@ class SerialManager:
                     f.write(line + "\n")
 
             self.log(f"Saved : {filename}")
+
+            # 保存が終わったらGUI側でグラフ表示できるように通知
+            self.plot_queue.put(filename)
 
         except Exception as e:
 
@@ -595,6 +620,16 @@ class MonitorGUI:
 
             self.append_log(message)
 
+        # 保存されたCSVがあればグラフウィンドウを開く
+        while True:
+
+            filepath = self.serial.get_plot_request()
+
+            if filepath is None:
+                break
+
+            self.show_graph(filepath)
+
         # 50ms後に再度チェック
         self.root.after(50, self.update_log)
 
@@ -610,6 +645,100 @@ class MonitorGUI:
         self.log.see(tk.END)
 
         self.log.configure(state="disabled")
+
+    #==================================================
+    # グラフ表示 (Time_us vs Speed の散布図)
+    #==================================================
+    def show_graph(self, filepath):
+
+        time_us = []
+        speed = []
+
+        row_count = 0
+        skip_count = 0
+
+        try:
+
+            # utf-8-sig : 先頭にBOMが付いていても取り除いて読める
+            with open(filepath, "r", encoding="utf-8-sig", newline="") as f:
+
+                reader = csv.reader(f)
+
+                header = next(reader, None)
+
+                if header is None:
+                    self.append_log(f"Graph Read Error : Empty file ({filepath})")
+                    return
+
+                # 列名前後の空白を除去し、大小文字を無視してインデックスを探す
+                header_clean = [h.strip() for h in header]
+                header_lower = [h.lower() for h in header_clean]
+
+                try:
+                    time_idx = header_lower.index("time_us")
+                    speed_idx = header_lower.index("speed")
+                except ValueError:
+                    self.append_log(
+                        f"Graph Read Error : Time_us/Speed列が見つかりません "
+                        f"(検出したヘッダー: {header_clean})"
+                    )
+                    return
+
+                for row in reader:
+
+                    row_count += 1
+
+                    if len(row) <= max(time_idx, speed_idx):
+                        skip_count += 1
+                        continue
+
+                    try:
+                        time_us.append(float(row[time_idx].strip()))
+                        speed.append(float(row[speed_idx].strip()))
+                    except ValueError:
+                        skip_count += 1
+                        continue
+
+        except Exception as e:
+            self.append_log(f"Graph Read Error : {e}")
+            return
+
+        if len(time_us) == 0:
+            self.append_log(
+                f"Graph Data Empty : {filepath} "
+                f"(header={header_clean}, rows_read={row_count}, skipped={skip_count})"
+            )
+            return
+
+        if skip_count > 0:
+            self.append_log(
+                f"Graph Warning : {skip_count}/{row_count} rows skipped in {filepath}"
+            )
+
+        # ------------------------------
+        # 別ウィンドウ作成
+        # ------------------------------
+        graph_win = tk.Toplevel(self.root)
+        graph_win.title(f"Graph - {os.path.basename(filepath)}")
+        graph_win.geometry("700x550")
+
+        fig = Figure(figsize=(6, 5), dpi=100)
+        ax = fig.add_subplot(111)
+
+        ax.scatter(time_us, speed, s=10)
+
+        ax.set_xlabel("Time_us")
+        ax.set_ylabel("Speed")
+        ax.set_title(os.path.basename(filepath))
+        ax.grid(True)
+
+        canvas = FigureCanvasTkAgg(fig, master=graph_win)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill="both", expand=True)
+
+        toolbar = NavigationToolbar2Tk(canvas, graph_win)
+        toolbar.update()
+        canvas.get_tk_widget().pack(fill="both", expand=True)
 
     #==================================================
     # 終了処理
