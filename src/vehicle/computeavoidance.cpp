@@ -6,9 +6,10 @@
 // 衝突回避速度算出関数
 //--------------------------------------------------
 int calculateCollisionAvoidanceSpeed(uint32_t OtherEnterTime,uint32_t OtherExitTime){
-    uint32_t MyEnterTime = predictTimeToIntersection();
-    uint32_t MyExitTime = predictTimeToExitIntersection();
-    int NewTargetSpeed ;
+    int currentPosition = LineCount * LINE_PITCH;   // [mm]
+    uint32_t MyEnterTime = (uint32_t)((uint64_t)(DIST_TO_INTERSECTION_ENTRY - currentPosition) * 1000000ULL / (CurrentSpeed * 10));
+    uint32_t MyExitTime = (uint32_t)((uint64_t)(DIST_TO_INTERSECTION_EXIT + VEHICLE_LENGTH - currentPosition) * 1000000ULL / (CurrentSpeed * 10));
+    int NewTargetSpeed = CurrentSpeed; ;
     uint32_t now = micros() - START_US;
     /////////////// 
     uint32_t desiredEnter;
@@ -18,7 +19,7 @@ int calculateCollisionAvoidanceSpeed(uint32_t OtherEnterTime,uint32_t OtherExitT
     }
     else if (OtherEnterTime>MyEnterTime){
         //自分が相手より早く突入
-        desiredEnter = OtherEnterTime - margin_us - (exitTime - enterTime);
+        desiredEnter = OtherEnterTime - margin_us - (MyExitTime - MyEnterTime);
     }
     else{
         //自分が相手より遅く突入
