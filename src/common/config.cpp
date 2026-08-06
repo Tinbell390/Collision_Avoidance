@@ -9,13 +9,13 @@ volatile bool StartFlag = false;
 volatile bool SaveFlag = false;
 volatile bool SensorONFlag = false;
 
-uint32_t START_US = 0;
-uint32_t LAST_US = 0;
-int FirstTargetSpeed = basespeed;
-int CurrentSpeed = 0;
-int targetSpeed = FirstTargetSpeed;
-uint32_t enterTime;
-uint32_t exitTime;
+volatile uint32_t START_US = 0;
+volatile uint32_t LAST_US = 0;
+volatile int FirstTargetSpeed = basespeed;
+volatile int CurrentSpeed = 0;
+volatile int targetSpeed = FirstTargetSpeed;
+volatile uint32_t enterTime;
+volatile uint32_t exitTime;
 
 
 volatile bool RunFlag = false;

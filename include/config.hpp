@@ -77,15 +77,15 @@ extern volatile bool StartFlag;
 extern volatile bool SaveFlag;
 extern volatile bool SensorONFlag;
 
-extern uint32_t START_US;
-extern uint32_t LAST_US;
+extern volatile uint32_t START_US;
+extern volatile uint32_t LAST_US;
 
-extern int CurrentSpeed;
-extern int targetSpeed;
-extern int FirstTargetSpeed;
+extern volatile int CurrentSpeed;
+extern volatile int targetSpeed;
+extern volatile int FirstTargetSpeed;
 
-extern uint32_t enterTime;
-extern uint32_t exitTime;
+extern volatile uint32_t enterTime;
+extern volatile uint32_t exitTime;
 
 extern volatile bool RunFlag;
 extern volatile bool CollisionFlag;
