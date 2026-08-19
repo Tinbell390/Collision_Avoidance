@@ -25,8 +25,8 @@ constexpr int resolution = 8;
 constexpr int INTERVAL_MS = 20;
 constexpr int DEBOUNCE_US = 200;
 constexpr int LINE_PITCH = 10;
-constexpr int DIST_TO_INTERSECTION_ENTRY = 500; // 交差点入口までの距離 [mm]
-constexpr int DIST_TO_INTERSECTION_EXIT  = 700; // 交差点出口までの距離 [mm]
+constexpr int DIST_TO_INTERSECTION_ENTRY = 400; // 交差点入口までの距離 [mm]
+constexpr int DIST_TO_INTERSECTION_EXIT  = 40; // 交差点間の距離 [mm]
 constexpr int VEHICLE_LENGTH             = 150; // 車体全長 [mm]
 constexpr int basespeed = 100;                 // 初期速度[cm/s]
 
