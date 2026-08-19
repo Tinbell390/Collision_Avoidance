@@ -25,16 +25,20 @@ void loop()
         CurrentSpeed=getCurrentSpeed();
         CurrentPWM = PIDcontroller(CurrentSpeed, targetSpeed);
         motorWrite(CurrentPWM);
-        enterTime=predictTimeToIntersection();
-        exitTime=predictTimeToExitIntersection();
         CurrentSTATUS.time_us=micros() - START_US;
         CurrentSTATUS.speed = CurrentSpeed;
-        CurrentSTATUS.pwm=CurrentPWM;
-        if(LoneryFlag){        
-            CurrentSTATUS.enterTime=enterTime;
-            CurrentSTATUS.exitTime=exitTime;
-        }
+        CurrentSTATUS.pwm=CurrentPWM; 
+        enterTime=predictTimeToIntersection();
+        exitTime=predictTimeToExitIntersection();     
+        CurrentSTATUS.enterTime=enterTime;
+        CurrentSTATUS.exitTime=exitTime;
         SendSTATUS(CurrentSTATUS);
+
+        // 交差点を通過したら停止
+        if(LineCount>DIST_TO_INTERSECTION_ENTRY/LINE_PITCH){
+            RunFlag=false;
+            motorBrake();
+        }
     }
     else{
         motorBrake();
