@@ -60,7 +60,7 @@ void OpenFile(){
         Serial.printf("%s opened\n", filename.c_str());
 
         // ヘッダ
-        file[i].println("Time_us,Speed,PWM");
+        file[i].println("Time_us,Speed,PWM,EnterTime,ExitTime");
     }
 }
 
@@ -79,7 +79,11 @@ void WriteLog(int i, StatusData data){
     file[i].print(",");
     file[i].print(data.speed);
     file[i].print(",");
-    file[i].println(data.pwm);
+    file[i].print(data.pwm);
+    file[i].print(",");
+    file[i].print(data.enterTime);
+    file[i].print(",");
+    file[i].println(data.exitTime);
 }
 
 //--------------------------------------------------
@@ -100,6 +104,7 @@ void CloseFile(){
 // ログ転送関数
 //--------------------------------------------------
 void sendLog(){
+    LogFlag = true;   // ログ転送中フラグを立てる
 
     // 実際にデータがある車両数を数える
     int sendCount = 0;
@@ -158,4 +163,5 @@ void sendLog(){
             }
         }
     }
+    LogFlag = false;   // ログ転送中フラグを下げる
 }

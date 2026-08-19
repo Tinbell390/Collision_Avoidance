@@ -50,8 +50,8 @@ int GetVehicleIndex(const uint8_t *mac_addr){
     return -1;
 }
 
-void OnStatusPacket(const uint8_t *mac_addr, StatusData payload)
-{
+void OnStatusPacket(const uint8_t *mac_addr, StatusData payload){
+    if(LogFlag) return;   // ログ転送中は受信を無視
     int index = GetVehicleIndex(mac_addr);
 
     if(index < 0){
