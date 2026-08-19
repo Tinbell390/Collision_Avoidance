@@ -36,5 +36,6 @@ void motorWrite(int duty){
 void motorBrake(){
     // モータドライバにショートブレーキを指示する
     ledcWrite(ledcChannel,0);
+    CurrentPWM=0;
 }
 
