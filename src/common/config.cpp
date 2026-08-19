@@ -21,7 +21,7 @@ volatile uint32_t exitTime;
 volatile bool RunFlag = false;
 volatile bool CollisionFlag = false;
 volatile bool LoneryFlag = false;
-
+volatile bool LogFlag = false;
 
 
 float KP=F_KP;
