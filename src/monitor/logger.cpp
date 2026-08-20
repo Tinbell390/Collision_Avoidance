@@ -82,13 +82,13 @@ void WriteLog(int i, StatusData data){
     file[i].print(data.pwm);
     file[i].print(",");
     if(data.enterTime == UINT32_MAX){
-        file[i].print("N/A");
+        file[i].print("");
     }else{
         file[i].print(data.enterTime);
     }
     file[i].print(",");
     if(data.exitTime == UINT32_MAX){
-        file[i].print("N/A");
+        file[i].print("");
     }else{
         file[i].print(data.exitTime);
     }
