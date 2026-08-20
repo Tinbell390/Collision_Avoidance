@@ -2,10 +2,6 @@
 exp3_monitor.py
 
 実験3用シリアルモニタ
-    - START / FINISH
-    - 衝突フラグ（トグルスイッチ）
-        ON  : START押下時に "start collision" を送信
-        OFF : START押下時に "start" を送信
 
 必要ライブラリ
     pip install pyserial
