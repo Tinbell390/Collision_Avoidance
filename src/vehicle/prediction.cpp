@@ -10,7 +10,7 @@ uint32_t predictTimeToIntersection() {
     int speed = CurrentSpeed;                       // [cm/s]
 
     // 停止中は計算不可
-    if (speed <= 0||abs(targetSpeed-CurrentSpeed)<speedborder){
+    if (speed <= 0||abs(targetSpeed-CurrentSpeed)>speedborder){
         return UINT32_MAX;
     }
 
@@ -32,13 +32,13 @@ uint32_t predictTimeToExitIntersection(){
     int speed = CurrentSpeed;                       // [cm/s]
 
     // 停止中は計算不可
-    if (speed <= 0||abs(targetSpeed-CurrentSpeed)<speedborder){
+    if (speed <= 0||abs(targetSpeed-CurrentSpeed)>speedborder){
         return UINT32_MAX;
     }
 
     // 車体後端が交差点を抜けるまでの残り距離 [mm]
     int remainingDistance =
-        DIST_TO_INTERSECTION_EXIT + VEHICLE_LENGTH - currentPosition;
+        DIST_TO_INTERSECTION_ENTRY + DIST_TO_INTERSECTION_EXIT + VEHICLE_LENGTH - currentPosition;
 
     // 既に通過済み
     if (remainingDistance <= 0){
