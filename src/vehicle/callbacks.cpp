@@ -15,6 +15,7 @@ void OnStartPacket(bool collision,bool lonery){
     CollisionFlag = collision;
     LoneryFlag = lonery;
     targetSpeed=FirstTargetSpeed;
+    LineCount=0;
     ClearController();
     clearIntervalBuffer();
 }
