@@ -3,30 +3,30 @@
 
 #include <Arduino.h>
 
-extern volatile int32_t sensor_log_index;
-extern volatile int32_t line_count;
-extern volatile uint8_t current_pwm;
+extern volatile int32_t sensor_log_index;               // センサーのログインデックス
+extern volatile int32_t line_count;                     // ラインカウント
+extern volatile uint8_t current_pwm;                    // 現在のPWM値
 
-extern volatile bool is_started;
-extern volatile bool should_save;
+extern volatile bool is_started;                        // ビークルがスタートしたかどうかのフラグ
+extern volatile bool should_save;                       // ログを保存するかどうかのフラグ
 
-extern volatile uint32_t start_time_us;
-extern volatile uint32_t last_time_us;
+extern volatile uint32_t start_time_us;                 // スタート時間（マイクロ秒）
+extern volatile uint32_t last_time_us;                  // センサが最後に更新された時間（マイクロ秒） 
 
-extern volatile int32_t current_speed_cm_s;
-extern volatile int32_t target_speed_cm_s;
-extern volatile int32_t first_target_speed_cm_s;
+extern volatile int32_t current_speed_cm_s;             // 現在の速度（センチメートル毎秒）
+extern volatile int32_t target_speed_cm_s;              // 目標速度（センチメートル毎秒）
+extern volatile int32_t first_target_speed_cm_s;        // 最初の目標速度（センチメートル毎秒）
 
-extern volatile uint32_t enter_time_us;
-extern volatile uint32_t exit_time_us;
+extern volatile uint32_t enter_time_us;                 // 交差点に入る時間（マイクロ秒）
+extern volatile uint32_t exit_time_us;                  // 交差点を出る時間（マイクロ秒）
 
-extern volatile bool is_running;
-extern volatile bool is_collision_detected;
-extern volatile bool is_lonely;
-extern volatile bool is_logging;
+extern volatile bool is_running;                        // ビークルが走行中かどうかのフラグ
+extern volatile bool is_collision_detected;             // 衝突が検出されたかどうかのフラグ
+extern volatile bool is_lonely;                         // ビークルが孤独かどうかのフラグ
+extern volatile bool is_logging;                        // ログを記録中かどうかのフラグ
 
-extern float pid_kp;
-extern float pid_ki;
-extern float pid_kd;
+extern float pid_kp;                                    // PID制御の比例ゲイン
+extern float pid_ki;                                    // PID制御の積分ゲイン
+extern float pid_kd;                                    // PID制御の微分ゲイン
 
 #endif // STATE_HPP
