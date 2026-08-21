@@ -19,8 +19,7 @@ void setup(){
 }
 
 // メインループ
-void loop()
-{
+void loop(){
     const uint32_t current_time_us =micros() - start_time_us;
     if(is_running&&current_time_us<RUN_TIME_LIMIT_US){
         current_speed_cm_s=calculate_current_speed_cm_s();
@@ -31,7 +30,7 @@ void loop()
             brake_motor();
         }
         // センサーがタイムアウト時間更新されていなければ停止
-        else if(current_interval_us>SENSOR_TIMEOUT_MS){
+        else if(current_interval_us>SENSOR_TIMEOUT_US){
             is_running=false;
             brake_motor();
         }

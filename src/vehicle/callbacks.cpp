@@ -11,6 +11,7 @@
 //--------------------------------------------------
 void handle_start_packet(bool collision,bool lonery){
     start_time_us=micros();
+    last_time_us=start_time_us;
     is_running = true;
     is_collision_detected = collision;
     is_lonely = lonery;
