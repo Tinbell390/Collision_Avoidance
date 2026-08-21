@@ -23,7 +23,8 @@ uint32_t predict_time_to_intersection_us() {
     }
 
     // [us]
-    return (uint32_t)((uint64_t)remaining_distance_mm * MICROSECONDS_PER_SECOND / (current_speed_cm_s * MM_PER_CM));
+    return static_cast<uint32_t>(static_cast<uint64_t>(remaining_distance_mm) * MICROSECONDS_PER_SECOND / (current_speed_cm_s * MM_PER_CM)
+    );
 }
 
 uint32_t predict_time_to_exit_intersection_us(){
@@ -43,6 +44,7 @@ uint32_t predict_time_to_exit_intersection_us(){
         return 0;
     }
 
-    // 時間[us]
-    return (uint32_t)((uint64_t)remaining_distance_mm * MICROSECONDS_PER_SECOND / (current_speed_cm_s * MM_PER_CM));
+    // [us]
+    return static_cast<uint32_t>(static_cast<uint64_t>(remaining_distance_mm) * MICROSECONDS_PER_SECOND / (current_speed_cm_s * MM_PER_CM)
+    );
 }

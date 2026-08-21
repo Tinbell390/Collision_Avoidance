@@ -10,8 +10,10 @@ constexpr int32_t MM_PER_CM = 10;
 //--------------------------------------------------
 int32_t calculate_collision_avoidance_speed_cm_s(uint32_t other_enter_time_us,uint32_t other_exit_time_us){
     int current_position_mm = line_count * LINE_PITCH_MM;   // [mm]
-    uint32_t my_enter_time_us = (uint32_t)((uint64_t)(DIST_TO_INTERSECTION_ENTRY_MM - current_position_mm) * MICROSECONDS_PER_SECOND / (current_speed_cm_s * MM_PER_CM));
-    uint32_t my_exit_time_us = (uint32_t)((uint64_t)(DIST_TO_INTERSECTION_EXIT_MM + VEHICLE_LENGTH_MM - current_position_mm) * MICROSECONDS_PER_SECOND / (current_speed_cm_s * MM_PER_CM));
+    uint32_t my_enter_time_us = static_cast<uint32_t>(static_cast<uint64_t>(DIST_TO_INTERSECTION_ENTRY_MM - current_position_mm) * MICROSECONDS_PER_SECOND / (current_speed_cm_s * MM_PER_CM));
+
+    uint32_t my_exit_time_us = static_cast<uint32_t>(static_cast<uint64_t>(DIST_TO_INTERSECTION_EXIT_MM + VEHICLE_LENGTH_MM - current_position_mm) * MICROSECONDS_PER_SECOND / (current_speed_cm_s * MM_PER_CM));
+    
     int32_t new_target_speed_cm_s = current_speed_cm_s;
     uint32_t current_time_us = micros() - start_time_us;
     /////////////// 
@@ -37,7 +39,7 @@ int32_t calculate_collision_avoidance_speed_cm_s(uint32_t other_enter_time_us,ui
 
     uint32_t remaining_time_us = desired_enter_time_us - current_time_us;
 
-    new_target_speed_cm_s = (int32_t)constrain(remaining_distance_mm * MICROSECONDS_PER_SECOND / remaining_time_us,MIN_SPEED_CM_S,MAX_SPEED_CM_S);
+    new_target_speed_cm_s = static_cast<uint32_t>(constrain(remaining_distance_mm * MICROSECONDS_PER_SECOND / remaining_time_us,MIN_SPEED_CM_S,MAX_SPEED_CM_S));
     ////////////////
     return new_target_speed_cm_s;
 }

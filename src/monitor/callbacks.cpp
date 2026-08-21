@@ -22,7 +22,7 @@ void handle_finish_packet(){
 //--------------------------------------------------
 // 車両番号取得（未登録なら登録）
 //--------------------------------------------------
-int32_t get_vehicle_index(const uint8_t *mac_addr){
+int8_t get_vehicle_index(const uint8_t *mac_addr){
 
     // 既登録か検索
     for(int i = 0; i < VEHICLE_COUNT; i++){
@@ -52,7 +52,7 @@ int32_t get_vehicle_index(const uint8_t *mac_addr){
 
 void handle_status_packet(const uint8_t *mac_addr, const StatusData payload){
     if(is_logging) return;   // ログ転送中は受信を無視
-    int32_t index = get_vehicle_index(mac_addr);
+    int8_t index = get_vehicle_index(mac_addr);
 
     if(index < 0){
         Serial.println("Vehicle table full.");
