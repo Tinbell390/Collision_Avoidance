@@ -1,110 +1,170 @@
 #include <Arduino.h>
+
 #include "config.hpp"
 #include "sensor.hpp"
 
-uint32_t intervalBuffer[median_window_size];
+uint32_t interval_buffer_us[MEDIAN_FILTER_WINDOW_SIZE];
 
-int head = 0;
-int count = 0;
+bool is_sensor_enabled = false;
+
+int32_t interval_buffer_head = 0;
+int32_t interval_buffer_count = 0;
+
+
 
 //--------------------------------------------------
-// センサログ追加関数
+// センサ間隔データ追加
 //--------------------------------------------------
-void pushInterval(uint32_t interval){
-    intervalBuffer[head] = interval;
 
-    head = (head + 1) % median_window_size;
+void push_sensor_interval_us(uint32_t interval_us)
+{
+    interval_buffer_us[interval_buffer_head] = interval_us;
 
-    if (count < median_window_size){
-        count++;
+    interval_buffer_head =
+        (interval_buffer_head + 1) %
+        MEDIAN_FILTER_WINDOW_SIZE;
+
+    if (interval_buffer_count < MEDIAN_FILTER_WINDOW_SIZE) {
+        interval_buffer_count++;
     }
 }
 
 //--------------------------------------------------
-// センサログクリア関数
+// センサ間隔バッファクリア
 //--------------------------------------------------
-void clearIntervalBuffer(){
-    head = 0;
-    count = 0;
+
+void clear_sensor_interval_buffer()
+{
+    interval_buffer_head = 0;
+    interval_buffer_count = 0;
 }
 
 //--------------------------------------------------
-// メディアンフィルタ関数
+// メディアンフィルタ
 //--------------------------------------------------
-uint32_t medianInterval(){
-    if (count == 0){
-        return 100000000;
+
+uint32_t calculate_median_interval_us()
+{
+    if (interval_buffer_count == 0) {
+        return INVALID_TIME_US;
     }
 
-    uint32_t work[median_window_size];
+    uint32_t work_buffer_us[MEDIAN_FILTER_WINDOW_SIZE];
 
-    for (int i = 0; i < count; i++){
-        work[i] = intervalBuffer[i];
+    for (int32_t i = 0; i < interval_buffer_count; i++) {
+        work_buffer_us[i] =
+            interval_buffer_us[i];
     }
 
-    for (int i = 0; i < count - 1; i++){
-        for (int j = i + 1; j < count; j++){
-            if (work[i] > work[j]){
-                uint32_t tmp = work[i];
-                work[i] = work[j];
-                work[j] = tmp;
+    for (int32_t i = 0;
+         i < interval_buffer_count - 1;
+         i++) {
+
+        for (int32_t j = i + 1;
+             j < interval_buffer_count;
+             j++) {
+
+            if (work_buffer_us[i] >
+                work_buffer_us[j]) {
+
+                const uint32_t temporary_us =
+                    work_buffer_us[i];
+
+                work_buffer_us[i] =
+                    work_buffer_us[j];
+
+                work_buffer_us[j] =
+                    temporary_us;
             }
         }
     }
 
-    return work[count / 2];
+    return work_buffer_us[
+        interval_buffer_count / 2
+    ];
 }
 
 //--------------------------------------------------
-// 現在速度取得関数
+// 現在速度取得
 //--------------------------------------------------
-int getCurrentSpeed(){
-    int speed;
-    uint32_t median_interval = medianInterval();
-    uint32_t now_interval = micros() - LAST_US;
-    uint32_t true_interval = max(median_interval,now_interval);
-    speed = LINE_PITCH*100000/true_interval;
-    return speed;
+
+int32_t calculate_current_speed_cm_s()
+{
+    const uint32_t median_interval_us =
+        calculate_median_interval_us();
+
+    const uint32_t current_interval_us =
+        micros() - last_time_us;
+
+    const uint32_t effective_interval_us =
+        max(
+            median_interval_us,
+            current_interval_us
+        );
+
+    if (effective_interval_us == 0 ||
+        effective_interval_us == INVALID_TIME_US) {
+        return 0;
+    }
+
+    return static_cast<int32_t>(
+        static_cast<uint64_t>(LINE_PITCH_MM)
+        * 100000ULL
+        / effective_interval_us
+    );
 }
 
 //--------------------------------------------------
-// ライン検出関数
+// センサ割り込み
 //--------------------------------------------------
-void IRAM_ATTR sensorISR(){
-    bool state = digitalRead(SENSOR_PIN);
 
-    //入力がHIGHでセンサーONフラグがfalseのとき記録をとる
-    if(state&&!SensorONFlag){
-        //現在時間を取得
-        uint32_t NOW_US = micros();
-        uint32_t Interval_US = NOW_US - LAST_US;
+void IRAM_ATTR sensor_isr()
+{
+    const bool sensor_state =
+        digitalRead(SENSOR_PIN);
 
-        //最新時間からデバウンス時間経過していないなら無視
-        if (Interval_US>DEBOUNCE_US){
-            //ライン検出をインクリメント
-            LineCount++;
-            //ログデータを配列に格納
-            pushInterval(Interval_US);
+    // センサがONになった瞬間
+    if (sensor_state && !is_sensor_enabled) {
 
-            //最新時間を更新
-            LAST_US=NOW_US;
-            //インデックスを更新
-            SensorlogIndex++;
-            SensorONFlag = true;
+        const uint32_t current_time_us =
+            micros();
+
+        const uint32_t interval_us =
+            current_time_us - last_time_us;
+
+        // デバウンス時間以内の入力は無視
+        if (interval_us > SENSOR_DEBOUNCE_US) {
+
+            line_count++;
+
+            push_sensor_interval_us(interval_us);
+
+            last_time_us =
+                current_time_us;
+
+            sensor_log_index++;
+
+            is_sensor_enabled = true;
         }
     }
-    //入力がLOWならセンサーONフラグをfalseにする
-    else if(!state){
-        SensorONFlag = false;
+
+    // センサがOFFになった
+    else if (!sensor_state) {
+        is_sensor_enabled = false;
     }
 }
+
 //--------------------------------------------------
 // センサセットアップ
 //--------------------------------------------------
-void setup_sensor(){
-    //ピンをセット
+
+void setup_sensor()
+{
     pinMode(SENSOR_PIN, INPUT);
 
-    // ライン検出関数の割り込みをセット
-    attachInterrupt(digitalPinToInterrupt(SENSOR_PIN),sensorISR,CHANGE);
+    attachInterrupt(
+        digitalPinToInterrupt(SENSOR_PIN),
+        sensor_isr,
+        CHANGE
+    );
 }

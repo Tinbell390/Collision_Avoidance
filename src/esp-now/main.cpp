@@ -217,19 +217,19 @@ void SendData(const uint8_t *mac_addr){
 
     static uint32_t counter = 0;
 
-    packet.payload.time_us = micros();
+    packet.payload.timestamp_us = micros();
 
     // 速度 500〜1000 の範囲で変化
-    packet.payload.speed = 500 + (counter % 500);
+    packet.payload.speed_cm_s = 500 + (counter % 500);
 
     // PWM 50〜150
     packet.payload.pwm = 50 + (counter % 100);
 
     // 交差点突入時間
-    packet.payload.enterTime = millis() + 1000;
+    packet.payload.time_to_enter_intersection_us = millis() + 1000;
 
     // 交差点退出時間
-    packet.payload.exitTime = packet.payload.enterTime + 500;
+    packet.payload.time_to_exit_intersection_us = packet.payload.time_to_enter_intersection_us + 500;
 
     counter++;
 
@@ -240,19 +240,19 @@ void SendData(const uint8_t *mac_addr){
 
     Serial.println("Dummy Data:");
     Serial.print(" time_us   : ");
-    Serial.println(packet.payload.time_us);
+    Serial.println(packet.payload.timestamp_us);
 
     Serial.print(" speed     : ");
-    Serial.println(packet.payload.speed);
+    Serial.println(packet.payload.speed_cm_s);
 
     Serial.print(" pwm       : ");
     Serial.println(packet.payload.pwm);
 
     Serial.print(" enterTime : ");
-    Serial.println(packet.payload.enterTime);
+    Serial.println(packet.payload.time_to_enter_intersection_us);
 
     Serial.print(" exitTime  : ");
-    Serial.println(packet.payload.exitTime);
+    Serial.println(packet.payload.time_to_exit_intersection_us);
 
     if (esp_now_send(mac_addr,(uint8_t *)&packet,sizeof(packet)) == ESP_OK){
         Serial.println("DATA Send OK");
@@ -366,19 +366,19 @@ void OnDataRecv(const uint8_t *mac_addr,const uint8_t *data,int len){
             Serial.println("DATA:");
 
             Serial.print(" time_us   : ");
-            Serial.println(recvPacket->payload.time_us);
+            Serial.println(recvPacket->payload.timestamp_us);
 
             Serial.print(" speed     : ");
-            Serial.println(recvPacket->payload.speed);
+            Serial.println(recvPacket->payload.speed_cm_s);
 
             Serial.print(" pwm       : ");
             Serial.println(recvPacket->payload.pwm);
 
             Serial.print(" enterTime : ");
-            Serial.println(recvPacket->payload.enterTime);
+            Serial.println(recvPacket->payload.time_to_enter_intersection_us);
 
             Serial.print(" exitTime  : ");
-            Serial.println(recvPacket->payload.exitTime);
+            Serial.println(recvPacket->payload.time_to_exit_intersection_us);
 
             Serial.print("RTT : ");
             Serial.print(elapsed);

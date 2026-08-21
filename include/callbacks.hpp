@@ -2,6 +2,6 @@
 #define CALLBACK_H
 #include "config.hpp"
 
-void OnRecvData(const uint8_t *mac_addr,const uint8_t *data,int len);
+void on_receive_data(const uint8_t *mac_addr,const uint8_t *data,int len);
 
 #endif 

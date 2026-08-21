@@ -8,7 +8,7 @@
 
 void setup(){
     Serial.begin(115200);
-    setup_ESPNOW();
+    setup_esp_now();
     setup_logger();
 }
 
@@ -21,24 +21,24 @@ void loop(){
     cmd.trim();
 
     if (cmd == "start"){
-        SendSTART(false,false);
-        OpenFile();
+        send_start(false,false);
+        open_log_file();
         Serial.println("Send START (CollisionFlag = false)");
     }
     else if (cmd == "start collision"){
-        SendSTART(true,false);
-        OpenFile();
+        send_start(true,false);
+        open_log_file();
         Serial.println("Send START (CollisionFlag = true)");
     }
     else if (cmd == "start lonery"){
-        SendSTART(false,true);
-        OpenFile();
+        send_start(false,true);
+        open_log_file();
         Serial.println("Send START");
     }    
     else if (cmd.startsWith("speed ")){
         // "speed "以降を整数に変換
         int speed = cmd.substring(6).toInt();
-        SendSPEED(speed);
+        send_speed(speed);
         Serial.printf("Send SET_SPEED (%d)\n", speed);
     }
     else if (cmd.startsWith("gain ")){
@@ -48,7 +48,7 @@ void loop(){
         int ret = sscanf(cmd.c_str(), "gain %f %f %f", &kp, &ki, &kd);
 
         if (ret == 3){
-            SendGAIN(kp, ki, kd);
+            send_gain(kp, ki, kd);
             Serial.printf("Send GAIN (KP=%.3f, KI=%.3f, KD=%.3f)\n",kp, ki, kd);
         }
         else{
@@ -56,9 +56,9 @@ void loop(){
         }
     }
     else if (cmd == "finish"){
-        SendFINISH();
-        CloseFile();
-        sendLog();
+        send_finish();
+        close_log_file();
+        send_log();
         Serial.println("Send FINISH");
     }
     else{

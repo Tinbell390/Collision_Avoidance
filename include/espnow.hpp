@@ -18,44 +18,44 @@ struct PacketHead{
     PacketType type;
 };
 
-struct STARTPacket{
-    PacketHead head;
-    bool CollisionFlag;
-    bool lonelyFlag;
+struct StartPacket{
+    PacketHead header;
+    bool is_collision;
+    bool is_lonely;
 };
 
-struct FINISHPacket{
-    PacketHead head;
+struct FinishPacket{
+    PacketHead header;
 };
 
-struct STATUSPacket{
-    PacketHead head;
+struct StatusPacket{
+    PacketHead header;
 
     StatusData payload;
 };
 
-struct SETSPEEDPacket{
-    PacketHead head;
-    uint16_t targetSpeed;   
+struct SetSpeedPacket{
+    PacketHead header;
+    uint32_t target_speed_cm_s;   
 };
 
-struct GAINPacket{
-    PacketHead head;
-    float KP;
-    float KI;
-    float KD;
+struct GainPacket{
+    PacketHead header;
+    float kp;
+    float ki;
+    float kd;
 };
 
-void setup_ESPNOW();
+void setup_esp_now();
 
-void SendSTART(bool collision,bool lonely);
+void send_start(bool collision,bool lonely);
 
-void SendFINISH();
+void send_finish();
 
-void SendSTATUS(const StatusData &data);
+void send_status(const StatusData &data);
 
-void SendSPEED(const int speed);
+void send_speed(const int speed);
 
-void SendGAIN(float kp,float ki,float kd);
+void send_gain(float kp,float ki,float kd);
 
 #endif

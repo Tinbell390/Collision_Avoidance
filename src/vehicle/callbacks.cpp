@@ -3,41 +3,41 @@
 #include "sensor.hpp"
 #include "callbacks.hpp"
 #include "controller.hpp"
-#include "computavoidance.hpp"
+#include "collision_avoidance.hpp"
 //ビークル側
 
 //--------------------------------------------------
 // STARTパケット受信処理関数
 //--------------------------------------------------
-void OnStartPacket(bool collision,bool lonery){
-    START_US=micros();
-    RunFlag = true;
-    CollisionFlag = collision;
-    LoneryFlag = lonery;
-    targetSpeed=FirstTargetSpeed;
-    LineCount=0;
-    ClearController();
-    clearIntervalBuffer();
+void handle_start_packet(bool collision,bool lonery){
+    start_time_us=micros();
+    is_running = true;
+    is_collision_detected = collision;
+    is_lonely = lonery;
+    target_speed_cm_s=first_target_speed_cm_s;
+    line_count=0;
+    reset_controller();
+    clear_sensor_interval_buffer();
 }
 
 //--------------------------------------------------
 // FINISHパケット受信処理関数
 //--------------------------------------------------
-void OnFinishPacket(){
-    RunFlag = false;
+void handle_finish_packet(){
+    is_running = false;
     return;
 }
 
 //--------------------------------------------------
 // STATUSパケット受信処理関数
 //--------------------------------------------------
-void OnStatusPacket(const uint8_t *mac_addr,StatusData payload){
+void handle_status_packet(const uint8_t *mac_addr, const StatusData payload){
 
-    if (payload.enterTime == INVALID_TIME || payload.exitTime  == INVALID_TIME || LoneryFlag){
+    if (payload.time_to_enter_intersection_us == INVALID_TIME_US || payload.time_to_exit_intersection_us  == INVALID_TIME_US || is_lonely){
         return;
     }
 
-    targetSpeed = calculateCollisionAvoidanceSpeed(payload.enterTime,payload.exitTime);
+    target_speed_cm_s = calculate_collision_avoidance_speed_cm_s(payload.time_to_enter_intersection_us,payload.time_to_exit_intersection_us);
 
     return;
 }
@@ -45,59 +45,59 @@ void OnStatusPacket(const uint8_t *mac_addr,StatusData payload){
 //--------------------------------------------------
 // SETSPEEDパケット受信処理関数
 //--------------------------------------------------
-void OnSetSpeedPacket(int speed){
-    targetSpeed=speed;
-    FirstTargetSpeed = speed;
+void handle_set_speed_packet(int speed){
+    target_speed_cm_s=speed;
+    first_target_speed_cm_s = speed;
     return;
 }
 
 //--------------------------------------------------
 // GAINパケット受信処理関数
 //--------------------------------------------------
-void OnGAINPacket(float kp,float ki,float kd){
-    KP = kp;
-    KI = ki;
-    KD = kd;
+void handle_gain_packet(float kp,float ki,float kd){
+    pid_kp = kp;
+    pid_ki = ki;
+    pid_kd = kd;
     return ;
 }
 
 //--------------------------------------------------
 // ビークル受信コールバック関数
 //--------------------------------------------------
-void OnRecvData(const uint8_t *mac_addr,const uint8_t *data,int len){
-    const PacketHead *head=reinterpret_cast<const PacketHead *>(data);
+void on_receive_data(const uint8_t *mac_addr,const uint8_t *data,int len){
+    const PacketHead *header=reinterpret_cast<const PacketHead *>(data);
 
-    switch (head->type){
+    switch (header->type){
         case PacketType::START:{
-            const STARTPacket *packet=reinterpret_cast<const STARTPacket *>(data);
-            OnStartPacket(packet->CollisionFlag,packet->lonelyFlag);
+            const StartPacket *packet=reinterpret_cast<const StartPacket *>(data);
+            handle_start_packet(packet->is_collision,packet->is_lonely);
             break;
         }
         case PacketType::FINISH:{
-            OnFinishPacket();
+            handle_finish_packet();
             break;
         }
 
         case PacketType::STATUS:{
-            STATUSPacket packet;
+            StatusPacket packet;
             memcpy(&packet, data, sizeof(packet));  
             StatusData payload=packet.payload;
-            OnStatusPacket(mac_addr,payload);
+            handle_status_packet(mac_addr,payload);
             break;
         }
 
         case PacketType::SET_SPEED:{
-            const SETSPEEDPacket *packet=reinterpret_cast<const SETSPEEDPacket *>(data);
-            int speed = packet->targetSpeed;
-            OnSetSpeedPacket(speed);
+            const SetSpeedPacket *packet=reinterpret_cast<const SetSpeedPacket *>(data);
+            int speed = packet->target_speed_cm_s;
+            handle_set_speed_packet(speed);
             break;
         }
         case PacketType::GAIN:{
-            const GAINPacket *packet=reinterpret_cast<const GAINPacket *>(data);
-            float kp=packet->KP;
-            float ki=packet->KI;
-            float kd=packet->KD;
-            OnGAINPacket(kp,ki,kd);
+            const GainPacket *packet=reinterpret_cast<const GainPacket *>(data);
+            float kp=packet->kp;
+            float ki=packet->ki;
+            float kd=packet->kd;
+            handle_gain_packet(kp,ki,kd);
             break;
 
         }

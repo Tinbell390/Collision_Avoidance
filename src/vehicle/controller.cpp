@@ -1,40 +1,39 @@
 #include "config.hpp"
 
-float integral=0;
-float previousError=0;
+float pid_integral=0.0F;
+float pid_previous_error=0.0F;
 
 // 課題としてコントローラを設計させる
 
 //--------------------------------------------------
 // コントローラ関数
 //--------------------------------------------------
-uint8_t PIDcontroller(int currentSpeed, int targetSpeed){
+uint8_t calculate_pid_pwm(int32_t current_speed_cm_s, int32_t target_speed_cm_s){
 
     // P制御
-    float error = targetSpeed - currentSpeed;
-    float P = KP * error;
+    const float error = static_cast<float>(target_speed_cm_s - current_speed_cm_s);
+    float P = pid_kp * error;
 
     // I制御
-    integral += error * INTERVAL_MS / 1000 ; 
-    integral = constrain(integral,-MAX_INTEGRAL,MAX_INTEGRAL);
-    float I = KI * integral;
+    pid_integral += error * static_cast<float>(CONTROL_INTERVAL_MS) / 1000 ; 
+    pid_integral = constrain(pid_integral,-PID_MAX_INTEGRAL,PID_MAX_INTEGRAL);
+    float I = pid_ki * pid_integral;
 
     // D制御
-    float derivative = (error - previousError) *1000/ INTERVAL_MS ;
-    float D = KD * derivative;
-    previousError = error;
+    float derivative = (error - pid_previous_error) *1000/ static_cast<float>(CONTROL_INTERVAL_MS) ;
+    float D = pid_kd * derivative;
+    pid_previous_error = error;
 
     float pwm = P + I + D;
     pwm = constrain(pwm,MIN_PWM,MAX_PWM);
 
-    return (uint8_t)pwm;
+    return static_cast<uint8_t>(pwm);
 }
 
 //--------------------------------------------------
 // コントローラ初期化関数
 //--------------------------------------------------
-void ClearController(){
-    integral=0;
-    previousError=0;
-    targetSpeed = basespeed;
+void reset_controller(){
+    pid_integral=0.0F;
+    pid_previous_error=0.0F;
 }

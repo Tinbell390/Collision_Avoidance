@@ -17,25 +17,25 @@ void setup_motor(){
     digitalWrite(PHASE_PIN, LOW);
 
     // PWMをセット
-    ledcSetup(ledcChannel, freq, resolution);
-    ledcAttachPin(ENABLE_PIN, ledcChannel);
+    ledcSetup(PWM_CHANNEL, PWM_FREQUENCY_HZ, PWM_RESOLUTION_BITS);
+    ledcAttachPin(ENABLE_PIN, PWM_CHANNEL);
 
-    motorBrake();
+    brake_motor();
 }
 
 //--------------------------------------------------
 // モータ速度関数
 //--------------------------------------------------
-void motorWrite(int duty){
-    ledcWrite(ledcChannel, duty);
+void write_motor_pwm(uint8_t pwm){
+    ledcWrite(PWM_CHANNEL, pwm);
 }
 
 //--------------------------------------------------
 // モータブレーキ関数
 //--------------------------------------------------
-void motorBrake(){
+void brake_motor(){
     // モータドライバにショートブレーキを指示する
-    ledcWrite(ledcChannel,0);
-    CurrentPWM=0;
+    ledcWrite(PWM_CHANNEL,0);
+    current_pwm=0;
 }
 

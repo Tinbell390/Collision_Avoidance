@@ -1,108 +1,147 @@
 #include <Arduino.h>
 #include <LittleFS.h>
+
 #include "config.hpp"
 #include "logger.hpp"
 
-//モニタ用
-File file[vehiclecount];
-bool fileHasData[vehiclecount];   // 実際にSTATUSを受信して記録したかどうか
+namespace {
+
+File log_files[VEHICLE_COUNT];
+bool has_log_data[VEHICLE_COUNT] = {false};
+
+constexpr uint32_t LOG_TRANSFER_TIMEOUT_MS = 5000;
+
+} // namespace
 
 //--------------------------------------------------
-//フラッシュメモリクリア関数
+// フラッシュメモリクリア
 //--------------------------------------------------
-void clearFlash(){
-    if (!LittleFS.begin()){
-        return ;
-    }
 
-    File root = LittleFS.open("/");
-    File file = root.openNextFile();
-
-    while (file){
-        String path = "/" + String(file.name());
-        file.close();
-
-        LittleFS.remove(path);
-
-        file = root.openNextFile();
-    }
-}
-
-//--------------------------------------------------
-// セットアップ関数
-//--------------------------------------------------
-void setup_logger(){
-    if (!LittleFS.begin(true)) {
-        Serial.println("LittleFS mount failed");
-    }
-    clearFlash();
-}
-
-
-
-//--------------------------------------------------
-// ファイル展開関数 (START)
-//--------------------------------------------------
-void OpenFile(){
-    for (int i = 0; i < vehiclecount; i++) {
-
-        fileHasData[i] = false;   // 新しい試行のためリセット
-
-        String filename = "/log" + String(i) + ".csv";
-
-        file[i] = LittleFS.open(filename, FILE_WRITE);
-
-        if (!file[i]) {
-            Serial.printf("Failed to open %s\n", filename.c_str());
-            continue;
-        }
-
-        Serial.printf("%s opened\n", filename.c_str());
-
-        // ヘッダ
-        file[i].println("Time_us,Speed,PWM,EnterTime,ExitTime");
-    }
-}
-
-//--------------------------------------------------
-// ログ書き込み関数 (STATUS受信)
-//--------------------------------------------------
-void WriteLog(int i, StatusData data){
-
-    if (!file[i]) {
+void clear_flash()
+{
+    if (!LittleFS.begin()) {
         return;
     }
 
-    fileHasData[i] = true;   // このファイルは実データを持つ
+    File root = LittleFS.open("/");
+    File entry = root.openNextFile();
 
-    file[i].print(data.time_us);
-    file[i].print(",");
-    file[i].print(data.speed);
-    file[i].print(",");
-    file[i].print(data.pwm);
-    file[i].print(",");
-    if(data.enterTime == UINT32_MAX){
-        file[i].print("");
-    }else{
-        file[i].print(data.enterTime);
+    while (entry) {
+        const String path = "/" + String(entry.name());
+
+        entry.close();
+
+        LittleFS.remove(path);
+
+        entry = root.openNextFile();
     }
-    file[i].print(",");
-    if(data.exitTime == UINT32_MAX){
-        file[i].print("");
-    }else{
-        file[i].print(data.exitTime);
-    }
-    file[i].println();
 }
 
 //--------------------------------------------------
-// ファイル閉じ関数 (FINISH)
+// Logger setup
 //--------------------------------------------------
-void CloseFile(){
 
-    for(int i = 0; i < vehiclecount; i++){
-        if(file[i]){
-            file[i].close();
+void setup_logger()
+{
+    if (!LittleFS.begin(true)) {
+        Serial.println("LittleFS mount failed");
+        return;
+    }
+
+    clear_flash();
+}
+
+//--------------------------------------------------
+// ログファイルを開く
+//--------------------------------------------------
+
+void open_log_file()
+{
+    for (int32_t vehicle_index = 0;
+         vehicle_index < VEHICLE_COUNT;
+         ++vehicle_index) {
+
+        has_log_data[vehicle_index] = false;
+
+        const String filename =
+            "/log" + String(vehicle_index) + ".csv";
+
+        log_files[vehicle_index] =
+            LittleFS.open(filename, FILE_WRITE);
+
+        if (!log_files[vehicle_index]) {
+            Serial.printf(
+                "Failed to open %s\n",
+                filename.c_str()
+            );
+            continue;
+        }
+
+        Serial.printf(
+            "%s opened\n",
+            filename.c_str()
+        );
+
+        log_files[vehicle_index].println(
+            "Time_us,Speed_cm_s,PWM,EnterTime_us,ExitTime_us"
+        );
+    }
+}
+
+//--------------------------------------------------
+// ログ書き込み
+//--------------------------------------------------
+
+void write_log(
+    int32_t vehicle_index,
+    const StatusData& data
+)
+{
+    if (vehicle_index < 0 ||
+        vehicle_index >= VEHICLE_COUNT) {
+        return;
+    }
+
+    if (!log_files[vehicle_index]) {
+        return;
+    }
+
+    has_log_data[vehicle_index] = true;
+
+    log_files[vehicle_index].print(data.timestamp_us);
+    log_files[vehicle_index].print(",");
+
+    log_files[vehicle_index].print(data.speed_cm_s);
+    log_files[vehicle_index].print(",");
+
+    log_files[vehicle_index].print(data.pwm);
+    log_files[vehicle_index].print(",");
+
+    if (data.time_to_enter_intersection_us != INVALID_TIME_US) {
+        log_files[vehicle_index].print(data.time_to_enter_intersection_us);
+    }
+
+    log_files[vehicle_index].print(",");
+
+    if (data.time_to_exit_intersection_us != INVALID_TIME_US) {
+        log_files[vehicle_index].print(data.time_to_exit_intersection_us);
+    }
+
+    log_files[vehicle_index].println();
+}
+
+//--------------------------------------------------
+// ログファイルを閉じる
+//--------------------------------------------------
+
+void close_log_file()
+{
+    for (int32_t vehicle_index = 0;
+         vehicle_index < VEHICLE_COUNT;
+         ++vehicle_index) {
+
+        if (log_files[vehicle_index]) {
+            log_files[vehicle_index].close();
         }
     }
 
@@ -110,67 +149,106 @@ void CloseFile(){
 }
 
 //--------------------------------------------------
-// ログ転送関数
+// ログ転送
 //--------------------------------------------------
-void sendLog(){
-    LogFlag = true;   // ログ転送中フラグを立てる
 
-    // 実際にデータがある車両数を数える
-    int sendCount = 0;
-    for(int i = 0; i < vehiclecount; i++){
-        if (fileHasData[i]) sendCount++;
+void send_log()
+{
+    is_logging = true;
+
+    int32_t log_count = 0;
+
+    for (int32_t vehicle_index = 0;
+         vehicle_index < VEHICLE_COUNT;
+         ++vehicle_index) {
+
+        if (has_log_data[vehicle_index]) {
+            ++log_count;
+        }
     }
 
-    Serial.printf("COUNT %d\n", sendCount);
+    Serial.printf(
+        "COUNT %ld\n",
+        log_count
+    );
 
-    for(int i = 0; i < vehiclecount; i++){
+    for (int32_t vehicle_index = 0;
+         vehicle_index < VEHICLE_COUNT;
+         ++vehicle_index) {
 
-        if (!fileHasData[i]) continue;   // 記録がない車両はスキップ
-
-        String filename = "/log" + String(i) + ".csv";
-
-        File f = LittleFS.open(filename, FILE_READ);
-
-        if(!f){
-            Serial.printf("Cannot open %s\n", filename.c_str());
+        if (!has_log_data[vehicle_index]) {
             continue;
         }
 
-        Serial.printf("BEGIN %d\n", i);
+        const String filename =
+            "/log" + String(vehicle_index) + ".csv";
 
-        while(f.available()){
-            Serial.write(f.read());
+        File log_file =
+            LittleFS.open(filename, FILE_READ);
+
+        if (!log_file) {
+            Serial.printf(
+                "Cannot open %s\n",
+                filename.c_str()
+            );
+            continue;
+        }
+
+        Serial.printf(
+            "BEGIN %ld\n",
+            vehicle_index
+        );
+
+        while (log_file.available()) {
+            Serial.write(log_file.read());
         }
 
         Serial.println();
-        Serial.printf("END %d\n", i);
 
-        f.close();
+        Serial.printf(
+            "END %ld\n",
+            vehicle_index
+        );
+
+        log_file.close();
     }
 
-    // PythonからACK待ち
-    uint32_t start = millis();
+    // PythonからACKを待つ
+    const uint32_t start_time_ms = millis();
 
-    while(millis() - start < 5000){
+    while (millis() - start_time_ms <
+           LOG_TRANSFER_TIMEOUT_MS) {
 
-        if(Serial.available()){
-
-            String cmd = Serial.readStringUntil('\n');
-            cmd.trim();
-
-            if(cmd == "ACK"){
-
-                for(int i = 0; i < vehiclecount; i++){
-                    if (!fileHasData[i]) continue;   // 記録がある分だけ削除
-
-                    String filename = "/log" + String(i) + ".csv";
-                    LittleFS.remove(filename);
-                }
-
-                Serial.println("ALL LOGS DELETED");
-                break;
-            }
+        if (!Serial.available()) {
+            continue;
         }
+
+        String command =
+            Serial.readStringUntil('\n');
+
+        command.trim();
+
+        if (command != "ACK") {
+            continue;
+        }
+
+        for (int32_t vehicle_index = 0;
+             vehicle_index < VEHICLE_COUNT;
+             ++vehicle_index) {
+
+            if (!has_log_data[vehicle_index]) {
+                continue;
+            }
+
+            const String filename =
+                "/log" + String(vehicle_index) + ".csv";
+
+            LittleFS.remove(filename);
+        }
+
+        Serial.println("ALL LOGS DELETED");
+        break;
     }
-    LogFlag = false;   // ログ転送中フラグを下げる
+
+    is_logging = false;
 }

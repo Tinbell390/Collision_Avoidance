@@ -3,42 +3,42 @@
 #include "logger.hpp"
 #include "callbacks.hpp"
 //モニター側
-uint8_t vehicleaddress[vehiclecount][6];
-bool addressRegistered[vehiclecount] = {false};
+uint8_t vehicle_mac_addresses[VEHICLE_COUNT][6];
+bool is_vehicle_registered[VEHICLE_COUNT] = {false};
 //--------------------------------------------------
 // STARTパケット受信処理関数
 //--------------------------------------------------
-void OnStartPacket(bool collision){
+void handle_start_packet(bool collision){
     return;
 }
 
 //--------------------------------------------------
 // FINISHパケット受信処理関数
 //--------------------------------------------------
-void OnFinishPacket(){
+void handle_finish_packet(){
     return;
 }
 
 //--------------------------------------------------
 // 車両番号取得（未登録なら登録）
 //--------------------------------------------------
-int GetVehicleIndex(const uint8_t *mac_addr){
+int32_t get_vehicle_index(const uint8_t *mac_addr){
 
     // 既登録か検索
-    for(int i = 0; i < vehiclecount; i++){
+    for(int i = 0; i < VEHICLE_COUNT; i++){
 
-        if(addressRegistered[i] &&memcmp(vehicleaddress[i], mac_addr, 6) == 0){
+        if(is_vehicle_registered[i] &&memcmp(vehicle_mac_addresses[i], mac_addr, 6) == 0){
             return i;
         }
     }
 
     // 未登録なら空きを探す
-    for(int i = 0; i < vehiclecount; i++){
+    for(int i = 0; i < VEHICLE_COUNT; i++){
 
-        if(!addressRegistered[i]){
+        if(!is_vehicle_registered[i]){
 
-            memcpy(vehicleaddress[i], mac_addr, 6);
-            addressRegistered[i] = true;
+            memcpy(vehicle_mac_addresses[i], mac_addr, 6);
+            is_vehicle_registered[i] = true;
 
             Serial.printf("Vehicle %d registered\n", i);
 
@@ -50,9 +50,9 @@ int GetVehicleIndex(const uint8_t *mac_addr){
     return -1;
 }
 
-void OnStatusPacket(const uint8_t *mac_addr, StatusData payload){
-    if(LogFlag) return;   // ログ転送中は受信を無視
-    int index = GetVehicleIndex(mac_addr);
+void handle_status_packet(const uint8_t *mac_addr, const StatusData payload){
+    if(is_logging) return;   // ログ転送中は受信を無視
+    int32_t index = get_vehicle_index(mac_addr);
 
     if(index < 0){
         Serial.println("Vehicle table full.");
@@ -65,39 +65,39 @@ void OnStatusPacket(const uint8_t *mac_addr, StatusData payload){
                   mac_addr[0], mac_addr[1], mac_addr[2],
                   mac_addr[3], mac_addr[4], mac_addr[5]);
 
-    Serial.printf("Time  : %lu\n", payload.time_us);
-    Serial.printf("Speed : %d\n", payload.speed);
+    Serial.printf("Time  : %lu\n", payload.timestamp_us);
+    Serial.printf("Speed : %d\n", payload.speed_cm_s);
     Serial.printf("PWM   : %d\n", payload.pwm);
     Serial.println("----------------------------------------");
 
-    WriteLog(index, payload);
+    write_log(index, payload);
 }
 
 //--------------------------------------------------
 // SETSPEEDパケット受信処理関数
 //--------------------------------------------------
-void OnSetSpeedPacket(int speed){
+void handle_set_speed_packet(int speed){
     return;
 }
 
 //--------------------------------------------------
 // GAINパケット受信処理関数
 //--------------------------------------------------
-void OnGAINPacket(float kp,float ki,float kd){
+void handle_gain_packet(float kp,float ki,float kd){
     return ;
 }
 
 //--------------------------------------------------
 // モニター受信コールバック関数
 //--------------------------------------------------
-void OnRecvData(const uint8_t *mac_addr,const uint8_t *data,int len){
-    const PacketHead *head=reinterpret_cast<const PacketHead *>(data);
+void on_receive_data(const uint8_t *mac_addr,const uint8_t *data,int len){
+    const PacketHead *header=reinterpret_cast<const PacketHead *>(data);
 
-    if(head->type != PacketType::STATUS) return;
+    if(header->type != PacketType::STATUS) return;
 
-    STATUSPacket packet;
+    StatusPacket packet;
     memcpy(&packet, data, sizeof(packet));  
     StatusData payload=packet.payload;
 
-    OnStatusPacket(mac_addr,payload);
+    handle_status_packet(mac_addr,payload);
 }

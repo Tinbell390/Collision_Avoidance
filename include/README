@@ -1,37 +1,177 @@
+# Coding Naming Convention
 
-This directory is intended for project header files.
+本プロジェクトでは、車両制御システムの可読性・保守性・安全性を確保するため、以下の命名規則を適用する。
 
-A header file is a file containing C declarations and macro definitions
-to be shared between several project source files. You request the use of a
-header file in your project source file (C, C++, etc) located in `src` folder
-by including it, with the C preprocessing directive `#include'.
+---
 
-```src/main.c
+## 1. 基本方針
 
-#include "header.h"
+- 変数名・関数名は原則 `snake_case` とする。
+- 定数名は `UPPER_SNAKE_CASE` とする。
+- 型名・構造体名は `PascalCase` とする。
+- 変数名には、可能な限り「何を表す値か」が分かる名前を付ける。
+- 物理量を表す変数には、原則として単位を名前に含める。
+- 略語を多用せず、意味が明確な名前を使用する。
+- 同じ意味を持つ変数には、プロジェクト全体で同じ命名を使用する。
 
-int main (void)
-{
- ...
-}
-```
+---
 
-Including a header file produces the same results as copying the header file
-into each source file that needs it. Such copying would be time-consuming
-and error-prone. With a header file, the related declarations appear
-in only one place. If they need to be changed, they can be changed in one
-place, and programs that include the header file will automatically use the
-new version when next recompiled. The header file eliminates the labor of
-finding and changing all the copies as well as the risk that a failure to
-find one copy will result in inconsistencies within a program.
+## 2. 命名規則一覧
 
-In C, the convention is to give header files names that end with `.h'.
+| 対象 | 命名規則 | 例 |
+|---|---|---|
+| 変数 | `snake_case` | `current_speed_cm_s` |
+| ローカル変数 | `snake_case` | `remaining_distance_mm` |
+| グローバル変数 | `snake_case` | `current_speed_cm_s` |
+| 定数 | `UPPER_SNAKE_CASE` | `MAX_SPEED_CM_S` |
+| `constexpr` | `UPPER_SNAKE_CASE` | `CONTROL_INTERVAL_MS` |
+| 関数 | `snake_case` | `calculate_current_speed_cm_s()` |
+| 構造体 | `PascalCase` | `StatusData` |
+| `enum class` | `PascalCase` | `PacketType` |
+| enum値 | `UPPER_SNAKE_CASE` | `STATUS` |
+| ヘッダファイル | `snake_case` | `collision_avoidance.hpp` |
+| ISR | `snake_case` + `_isr` | `sensor_isr()` |
 
-Read more about using header files in official GCC documentation:
+---
 
-* Include Syntax
-* Include Operation
-* Once-Only Headers
-* Computed Includes
+## 3. 物理量の単位
 
-https://gcc.gnu.org/onlinedocs/cpp/Header-Files.html
+物理量を表す変数・定数・関数の戻り値には、可能な限り単位を名前に含める。
+
+### 時間
+
+| 単位 | 接尾辞 | 例 |
+|---|---|---|
+| マイクロ秒 | `_us` | `timestamp_us` |
+| ミリ秒 | `_ms` | `CONTROL_INTERVAL_MS` |
+| 秒 | `_s` | `timeout_s` |
+
+### 距離
+
+| 単位 | 接尾辞 | 例 |
+|---|---|---|
+| ミリメートル | `_mm` | `LINE_PITCH_MM` |
+| センチメートル | `_cm` | `distance_cm` |
+
+### 速度
+
+速度は `[cm/s]` を基本単位とする。
+
+### 周波数
+
+周波数には_HZを使用する
+
+### PWM
+
+PWM値には _PWM を使用する。
+
+## 4. 時間に関する命名
+
+「時刻」と「所要時間」を区別する。
+
+### 時刻
+
+特定の時点を表す値には timestamp または time を使用する。
+
+### 所要時間
+
+ある地点・イベントまでに必要な時間には time_to_ を使用する。
+
+### 時間間隔
+
+2つのイベント間の時間には interval を使用する。
+
+## 5. bool型の命名
+
+bool 型の変数は、状態や条件が分かるように以下の接頭辞を使用する。
+
+接頭辞	用途	例
+is_	状態	is_running
+has_	所有・存在	has_data
+can_	可能か	can_start
+should_	実行すべきか	should_stop
+
+## 6. インデックス・カウンタ
+
+### インデックス
+
+配列やテーブルの位置を表す変数には _index を使用する。
+
+### カウンタ
+
+個数や回数を表す場合は _count を使用する。
+
+## 7. 配列・バッファ
+
+配列名には、格納しているデータの種類を明確にする。
+
+## 8. 関数
+
+関数名は snake_case とし、原則として「動作 + 対象」の形式にする。
+
+## 9. 関数名に単位を含める
+
+関数の戻り値が物理量の場合、戻り値の単位を関数名に含める。
+
+## 10. 定数
+
+設定値・固定値は constexpr を基本とし、UPPER_SNAKE_CASE を使用する．
+
+## 11. 型
+
+用途に応じて固定幅整数型を使用する。
+
+| 型          | 用途                    |
+| ---------- | --------------------- |
+| `uint8_t`  | PWM、パケット種別など、0～255の整数 |
+| `uint16_t` | 比較的小さい非負整数            |
+| `uint32_t` | 時刻、時間、非負の大きな整数        |
+| `int32_t`  | 速度、距離、符号付き計算値         |
+| `float`    | PIDゲイン、PID計算          |
+| `bool`     | 状態・フラグ                |
+
+## 12. const の使用
+
+変更しないローカル変数には原則として const を付ける。
+計算途中で変更する必要がある変数には const を付けない。
+
+## 13. グローバル変数
+
+グローバル変数は必要最小限とする。
+
+他の .cpp ファイルから参照する必要がある変数のみ、ヘッダファイルで extern 宣言する。
+原則として、他のモジュールから直接アクセスする必要がない変数は extern にしない。
+
+## 14. モジュール内部変数
+
+PIDの積分値など、特定のモジュールだけが使用する内部状態は、その .cpp ファイル内で管理する。
+
+## 16. マジックナンバー
+
+意味を持つ数値をコード中に直接記述しない。
+単位変換など、意味が明確な定数も可能な限り名前を付ける。
+
+## 17. ファイル名
+
+ヘッダ・ソースファイルのファイル名は snake_case を使用する。
+
+## 18. 例外
+
+以下の場合は、上記規則よりも外部仕様・ライブラリ仕様を優先する。
+
+ - Arduino / ESP32 APIが要求する名前
+ - ESP-NOWなど通信プロトコルで定義された名称
+ - 外部ライブラリのAPI
+ - 実験・評価用データフォーマットで既に定義された名称
+
+ただし、プロジェクト内部の変数については可能な限り本規則に従う。
+
+## 19. 命名判断の優先順位
+
+変数名を決める際は、以下の順で考える。
+
+ - 何の値か
+ - 単位は何か
+ - 現在値・目標値・最大値など、値の役割は何か
+ - 他のモジュールと共有する値か
+ - プロジェクト内の既存の命名と一致しているか
