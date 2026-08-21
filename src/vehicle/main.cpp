@@ -25,8 +25,14 @@ void loop()
     if(is_running&&current_time_us<RUN_TIME_LIMIT_US){
         current_speed_cm_s=calculate_current_speed_cm_s();
         current_pwm = calculate_pid_pwm(current_speed_cm_s, target_speed_cm_s);
+        const uint32_t current_interval_us =micros() - last_time_us;
         // 交差点を通過したら停止
         if(line_count>DIST_TO_INTERSECTION_ENTRY_MM/LINE_PITCH_MM){
+            brake_motor();
+        }
+        // センサーがタイムアウト時間更新されていなければ停止
+        else if(current_interval_us>SENSOR_TIMEOUT_MS){
+            is_running=false;
             brake_motor();
         }
         else write_motor_pwm(current_pwm);
