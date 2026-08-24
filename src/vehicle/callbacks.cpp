@@ -3,7 +3,7 @@
 #include "sensor.hpp"
 #include "callbacks.hpp"
 #include "controller.hpp"
-#include "collision_avoidance.hpp"
+
 //ビークル側
 
 //--------------------------------------------------
@@ -37,9 +37,8 @@ void handle_status_packet(const uint8_t *mac_addr, const StatusData payload){
     if (payload.time_to_enter_intersection_us == INVALID_TIME_US || payload.time_to_exit_intersection_us  == INVALID_TIME_US || is_lonely){
         return;
     }
-
-    target_speed_cm_s = calculate_collision_avoidance_speed_cm_s(payload.time_to_enter_intersection_us,payload.time_to_exit_intersection_us);
-
+    other_enter_time_us = payload.time_to_enter_intersection_us;
+    other_exit_time_us = payload.time_to_exit_intersection_us;
     return;
 }
 

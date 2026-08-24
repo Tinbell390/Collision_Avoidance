@@ -5,6 +5,7 @@
 #include "sensor.hpp"
 #include "controller.hpp"
 #include "prediction.hpp"
+#include "collision_avoidance.hpp"
 
 // 実験2,実験3で使用する車両用
 
@@ -25,6 +26,14 @@ void loop(){
         current_speed_cm_s=calculate_current_speed_cm_s();
         current_pwm = calculate_pid_pwm(current_speed_cm_s, target_speed_cm_s);
         const uint32_t current_interval_us =micros() - last_time_us;
+
+        //現在の予測到着時間の計算
+        self_enter_time_us=predict_time_to_intersection_us();
+        self_exit_time_us=predict_time_to_exit_intersection_us();    
+        if(other_enter_time_us != INVALID_TIME_US && other_exit_time_us != INVALID_TIME_US){
+            target_speed_cm_s = calculate_collision_avoidance_speed_cm_s(other_enter_time_us,other_exit_time_us);
+        }
+
         // 交差点を通過したら停止
         if(line_count>DIST_TO_INTERSECTION_ENTRY_MM/LINE_PITCH_MM){
             brake_motor();
@@ -38,11 +47,11 @@ void loop(){
         // STATUS送信
         current_status.timestamp_us=current_time_us;
         current_status.speed_cm_s = current_speed_cm_s;
+        current_status.target_speed_cm_s = target_speed_cm_s;
+        current_status.line_count=line_count;
         current_status.pwm=current_pwm; 
-        enter_time_us=predict_time_to_intersection_us();
-        exit_time_us=predict_time_to_exit_intersection_us();     
-        current_status.time_to_enter_intersection_us=enter_time_us;
-        current_status.time_to_exit_intersection_us=exit_time_us;
+        current_status.time_to_enter_intersection_us=self_enter_time_us;
+        current_status.time_to_exit_intersection_us=self_exit_time_us;
         send_status(current_status);
     }
     else{

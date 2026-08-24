@@ -676,7 +676,7 @@ class MonitorGUI:
 
                 try:
                     time_idx = header_lower.index("time_us")
-                    speed_idx = header_lower.index("speed")
+                    speed_idx = header_lower.index("speed_cm_s")
                 except ValueError:
                     self.append_log(
                         f"Graph Read Error : Time_us/Speed列が見つかりません "

@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 extern volatile int32_t sensor_log_index;               // センサーのログインデックス
-extern volatile int32_t line_count;                     // ラインカウント
+extern volatile uint32_t line_count;                     // ラインカウント
 extern volatile uint8_t current_pwm;                    // 現在のPWM値
 
 extern volatile bool is_started;                        // ビークルがスタートしたかどうかのフラグ
@@ -17,8 +17,11 @@ extern volatile int32_t current_speed_cm_s;             // 現在の速度（セ
 extern volatile int32_t target_speed_cm_s;              // 目標速度（センチメートル毎秒）
 extern volatile int32_t first_target_speed_cm_s;        // 最初の目標速度（センチメートル毎秒）
 
-extern volatile uint32_t enter_time_us;                 // 交差点に入る時間（マイクロ秒）
-extern volatile uint32_t exit_time_us;                  // 交差点を出る時間（マイクロ秒）
+extern volatile uint32_t self_enter_time_us;                 // 自分の交差点に入る時間（マイクロ秒）
+extern volatile uint32_t self_exit_time_us;                  // 自分の交差点を出る時間（マイクロ秒）
+
+extern volatile uint32_t other_enter_time_us;                 // 他の車両の交差点に入る時間（マイクロ秒）
+extern volatile uint32_t other_exit_time_us;                  // 他の車両の交差点を出る時間（マイクロ秒）
 
 extern volatile bool is_running;                        // ビークルが走行中かどうかのフラグ
 extern volatile bool is_collision_detected;             // 衝突が検出されたかどうかのフラグ

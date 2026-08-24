@@ -20,7 +20,7 @@ uint8_t calculate_pid_pwm(int32_t current_speed_cm_s, int32_t target_speed_cm_s)
     float I = pid_ki * pid_integral;
 
     // D制御
-    float derivative = (error - pid_previous_error) *1000/ static_cast<float>(CONTROL_INTERVAL_MS) ;
+    float derivative = (error - pid_previous_error) * static_cast<float>(CONTROL_INTERVAL_MS) / 1000 ;
     float D = pid_kd * derivative;
     pid_previous_error = error;
 

@@ -1,9 +1,10 @@
 #include <Arduino.h>
-
+#include "driver/gpio.h"
+#include "esp_intr_alloc.h"
 #include "config.hpp"
 #include "sensor.hpp"
-
-uint32_t interval_buffer_us[MEDIAN_FILTER_WINDOW_SIZE];
+const uint8_t FILTER_WINDOW_SIZE = SMOOTH_FILTER_ENABLED ? SMOOTH_FILTER_WINDOW_SIZE : MEDIAN_FILTER_WINDOW_SIZE;
+uint32_t interval_buffer_us[FILTER_WINDOW_SIZE];
 
 bool is_sensor_enabled = false;
 
@@ -22,9 +23,9 @@ void push_sensor_interval_us(uint32_t interval_us)
 
     interval_buffer_head =
         (interval_buffer_head + 1) %
-        MEDIAN_FILTER_WINDOW_SIZE;
+        FILTER_WINDOW_SIZE;
 
-    if (interval_buffer_count < MEDIAN_FILTER_WINDOW_SIZE) {
+    if (interval_buffer_count < FILTER_WINDOW_SIZE) {
         interval_buffer_count++;
     }
 }
@@ -49,7 +50,7 @@ uint32_t calculate_median_interval_us()
         return INVALID_TIME_US;
     }
 
-    uint32_t work_buffer_us[MEDIAN_FILTER_WINDOW_SIZE];
+    uint32_t work_buffer_us[FILTER_WINDOW_SIZE];
 
     for (int32_t i = 0; i < interval_buffer_count; i++) {
         work_buffer_us[i] =
@@ -85,16 +86,34 @@ uint32_t calculate_median_interval_us()
 }
 
 //--------------------------------------------------
+// 平滑化フィルタ
+//--------------------------------------------------
+
+uint32_t calculate_smoothed_interval_us()
+{
+    if (interval_buffer_count == 0) {
+        return INVALID_TIME_US;
+    }
+
+    uint64_t sum = 0;
+    for (int32_t i = 0; i < interval_buffer_count; i++) {
+        sum += interval_buffer_us[i];
+    }
+
+    return static_cast<uint32_t>(sum / interval_buffer_count);
+}
+
+//--------------------------------------------------
 // 現在速度取得
 //--------------------------------------------------
 
 int32_t calculate_current_speed_cm_s()
 {
-    const uint32_t median_interval_us =
+    const uint32_t median_interval_us = SMOOTH_FILTER_ENABLED ?
+        calculate_smoothed_interval_us() :
         calculate_median_interval_us();
 
-    const uint32_t current_interval_us =
-        micros() - last_time_us;
+    const uint32_t current_interval_us = micros() - last_time_us;
 
     const uint32_t effective_interval_us =
         max(
@@ -107,24 +126,24 @@ int32_t calculate_current_speed_cm_s()
         return 0;
     }
 
-    return static_cast<int32_t>(
-        static_cast<uint64_t>(LINE_PITCH_MM)
-        * 100000ULL
-        / effective_interval_us
-    );
+    return static_cast<int32_t>(static_cast<uint64_t>(LINE_PITCH_MM) * 100000ULL / effective_interval_us);
 }
 
 //--------------------------------------------------
 // センサ割り込み
 //--------------------------------------------------
 
-void IRAM_ATTR sensor_isr()
+void IRAM_ATTR sensor_isr(void *arg)
 {
     const bool sensor_state =
         digitalRead(SENSOR_PIN);
 
-    // センサがONになった瞬間
-    if (sensor_state && !is_sensor_enabled) {
+    // センサがOFF
+    if (!sensor_state) {
+        is_sensor_enabled = false;
+    }
+    // センサがON
+    else if (!is_sensor_enabled) {
 
         const uint32_t current_time_us =
             micros();
@@ -142,15 +161,8 @@ void IRAM_ATTR sensor_isr()
             last_time_us =
                 current_time_us;
 
-            sensor_log_index++;
-
             is_sensor_enabled = true;
         }
-    }
-
-    // センサがOFFになった
-    else if (!sensor_state) {
-        is_sensor_enabled = false;
     }
 }
 
@@ -162,9 +174,22 @@ void setup_sensor()
 {
     pinMode(SENSOR_PIN, INPUT);
 
-    attachInterrupt(
-        digitalPinToInterrupt(SENSOR_PIN),
+    const gpio_num_t sensor_gpio =
+        static_cast<gpio_num_t>(SENSOR_PIN);
+
+    gpio_set_intr_type(
+        sensor_gpio,
+        GPIO_INTR_ANYEDGE
+    );
+
+    gpio_install_isr_service(
+        ESP_INTR_FLAG_LEVEL3 |
+        ESP_INTR_FLAG_IRAM
+    );
+
+    gpio_isr_handler_add(
+        sensor_gpio,
         sensor_isr,
-        CHANGE
+        nullptr
     );
 }
