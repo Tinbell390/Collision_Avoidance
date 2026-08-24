@@ -4,7 +4,7 @@ exp3_monitor.py
 実験3用シリアルモニタ
 
 必要ライブラリ
-    pip install pyserial
+    pip install pyserial matplotlib
 """
 import queue
 import serial
@@ -17,6 +17,11 @@ from datetime import datetime
 import tkinter as tk
 from tkinter import ttk
 from tkinter.scrolledtext import ScrolledText
+
+import matplotlib
+matplotlib.use("TkAgg")
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 
 # =====================================================
@@ -35,6 +40,9 @@ class SerialManager:
         # GUIへ渡すメッセージ
         self.message_queue = queue.Queue()
 
+        # GUIへ渡すプロット用データ（車両ごとの (Time_us, Time_us+EnterTime_us) データ）
+        self.plot_queue = queue.Queue()
+
         # CSV受信
         self.receiving_csv = False
         self.current_vehicle = None
@@ -43,6 +51,10 @@ class SerialManager:
         # 転送予定ファイル数の管理
         self.expected_count = None
         self.received_count = 0
+
+        # 今回のセッションで受信した各車両のプロット用データ
+        # { vehicle_id: [(Time_us, Time_us+EnterTime_us), ...], ... }
+        self.vehicle_data = {}
 
 
     # -------------------------------------------------
@@ -61,6 +73,16 @@ class SerialManager:
 
         try:
             return self.message_queue.get_nowait()
+        except queue.Empty:
+            return None
+
+    # -------------------------------------------------
+    # GUI用プロットデータ取得
+    # -------------------------------------------------
+    def get_plot_data(self):
+
+        try:
+            return self.plot_queue.get_nowait()
         except queue.Empty:
             return None
 
@@ -200,6 +222,9 @@ class SerialManager:
 
                     self.received_count = 0
 
+                    # 新しいセッション開始のため、前回分のプロットデータをクリア
+                    self.vehicle_data = {}
+
                     self.log(f"Expecting {self.expected_count} log file(s)")
 
                     continue
@@ -231,16 +256,21 @@ class SerialManager:
 
                     self.save_csv(self.current_vehicle)
 
+                    self.parse_and_store(self.current_vehicle)
+
                     self.receiving_csv = False
                     self.current_vehicle = None
 
                     self.received_count += 1
 
-                    # 予定件数すべて受信したらACKを返す
+                    # 予定件数すべて受信したらACKを返し、プロットデータをGUIへ渡す
                     if (self.expected_count is not None
                             and self.received_count >= self.expected_count):
 
                         self.send("ACK")
+
+                        self.plot_queue.put(dict(self.vehicle_data))
+
                         self.expected_count = None
                         self.received_count = 0
 
@@ -295,6 +325,46 @@ class SerialManager:
         except Exception as e:
 
             self.log(f"Save Error : {e}")
+
+    # -------------------------------------------------
+    # CSVバッファをパースしてプロット用データに変換
+    #   横軸 : Time_us
+    #   縦軸 : Time_us + EnterTime_us
+    # -------------------------------------------------
+    def parse_and_store(self, vehicle):
+
+        if not self.csv_buffer:
+            self.vehicle_data[vehicle] = []
+            return
+
+        header = [h.strip() for h in self.csv_buffer[0].split(",")]
+
+        try:
+            time_idx = header.index("Time_us")
+            enter_idx = header.index("EnterTime_us")
+        except ValueError:
+            self.log("CSV Parse Error : required columns not found in header")
+            self.vehicle_data[vehicle] = []
+            return
+
+        data = []
+
+        for line in self.csv_buffer[1:]:
+
+            parts = line.split(",")
+
+            if len(parts) <= max(time_idx, enter_idx):
+                continue
+
+            try:
+                t = float(parts[time_idx])
+                enter = float(parts[enter_idx])
+            except ValueError:
+                continue
+
+            data.append((t, t + enter))
+
+        self.vehicle_data[vehicle] = data
 
 
 # =====================================================
@@ -425,6 +495,12 @@ class MonitorGUI:
             self.update_log
         )
 
+        # プロットデータ監視開始
+        self.root.after(
+            200,
+            self.check_plot
+        )
+
         # ×ボタン
         self.root.protocol(
             "WM_DELETE_WINDOW",
@@ -520,6 +596,19 @@ class MonitorGUI:
         self.root.after(50, self.update_log)
 
     #==================================================
+    # プロットデータ更新
+    #==================================================
+    def check_plot(self):
+
+        data = self.serial.get_plot_data()
+
+        if data is not None:
+            self.show_plot(data)
+
+        # 200ms後に再度チェック
+        self.root.after(200, self.check_plot)
+
+    #==================================================
     # ログ追加
     #==================================================
     def append_log(self, text):
@@ -531,6 +620,62 @@ class MonitorGUI:
         self.log.see(tk.END)
 
         self.log.configure(state="disabled")
+
+    #==================================================
+    # 2車両分のデータを1つのグラフにまとめて表示
+    #   横軸 : Time_us
+    #   縦軸 : Time_us + EnterTime_us
+    #==================================================
+    def show_plot(self, vehicle_data):
+
+        if not vehicle_data:
+            return
+
+        win = tk.Toplevel(self.root)
+        win.title("Vehicle Time Plot")
+        win.geometry("800x600")
+
+        fig = Figure(figsize=(8, 6), dpi=100)
+        ax = fig.add_subplot(111)
+
+        for vehicle in sorted(vehicle_data.keys()):
+
+            data = vehicle_data[vehicle]
+
+            if not data:
+                continue
+
+            xs = [d[0] for d in data]
+            ys = [d[1] for d in data]
+
+            ax.plot(
+                xs,
+                ys,
+                marker="o",
+                markersize=2,
+                linewidth=1,
+                label=f"Vehicle {vehicle}"
+            )
+
+        ax.set_xlabel("Time_us")
+        ax.set_ylabel("Time_us + EnterTime_us")
+        ax.set_title("Vehicle Time_us vs Time_us + EnterTime_us")
+        ax.legend()
+        ax.grid(True)
+
+        canvas = FigureCanvasTkAgg(fig, master=win)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill="both", expand=True)
+
+        toolbar_frame = ttk.Frame(win)
+        toolbar_frame.pack(fill="x")
+
+        try:
+            from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
+            toolbar = NavigationToolbar2Tk(canvas, toolbar_frame)
+            toolbar.update()
+        except Exception:
+            pass
 
     #==================================================
     # 終了処理

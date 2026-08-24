@@ -83,7 +83,7 @@ void open_log_file()
         );
 
         log_files[vehicle_index].println(
-            "Time_us,Speed_cm_s,target_speed_cm_s,line_count,PWM,EnterTime_us,ExitTime_us"
+            "Time_us,Speed_cm_s,Target_speed_cm_s,PWM,Line_count,EnterTime_us,ExitTime_us"
         );
     }
 }
@@ -119,7 +119,7 @@ void write_log(
 
     log_files[vehicle_index].print(data.pwm);
     log_files[vehicle_index].print(",");
-    
+
     log_files[vehicle_index].print(data.line_count);
     log_files[vehicle_index].print(",");
 

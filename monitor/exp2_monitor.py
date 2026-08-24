@@ -342,6 +342,9 @@ class MonitorGUI:
 
         self.serial = SerialManager()
 
+        # 直近にSETしたPIDゲイン (グラフのタイトル表示用)
+        self.last_gain = {"kp": None, "ki": None, "kd": None}
+
         self.root = tk.Tk()
         self.root.title("ESP32 Monitor")
         self.root.geometry("700x550")
@@ -604,6 +607,9 @@ class MonitorGUI:
             self.append_log("Invalid gain")
             return
 
+        # グラフタイトル表示用に直近のゲインを保持
+        self.last_gain = {"kp": kp, "ki": ki, "kd": kd}
+
         self.serial.send_gain(kp, ki, kd)
 
     #==================================================
@@ -647,12 +653,21 @@ class MonitorGUI:
         self.log.configure(state="disabled")
 
     #==================================================
-    # グラフ表示 (Time_us vs Speed の散布図)
+    # グラフ表示
+    # (Time_us を横軸に Speed_cm_s / Target_speed_cm_s / PWM を
+    #  1つのグラフにまとめて表示する)
     #==================================================
     def show_graph(self, filepath):
 
-        time_us = []
-        speed = []
+        # 表示したい列名 (CSVヘッダーと照合するキー)
+        columns = {
+            "time_us": "Time_us",
+            "speed_cm_s": "Speed_cm_s",
+            "target_speed_cm_s": "Target_speed_cm_s",
+            "pwm": "PWM",
+        }
+
+        data = {key: [] for key in columns}
 
         row_count = 0
         skip_count = 0
@@ -674,36 +689,45 @@ class MonitorGUI:
                 header_clean = [h.strip() for h in header]
                 header_lower = [h.lower() for h in header_clean]
 
+                idx = {}
+
                 try:
-                    time_idx = header_lower.index("time_us")
-                    speed_idx = header_lower.index("speed_cm_s")
+                    for key, name in columns.items():
+                        idx[key] = header_lower.index(name.lower())
                 except ValueError:
                     self.append_log(
-                        f"Graph Read Error : Time_us/Speed列が見つかりません "
+                        f"Graph Read Error : 必要な列が見つかりません "
                         f"(検出したヘッダー: {header_clean})"
                     )
                     return
+
+                max_idx = max(idx.values())
 
                 for row in reader:
 
                     row_count += 1
 
-                    if len(row) <= max(time_idx, speed_idx):
+                    if len(row) <= max_idx:
                         skip_count += 1
                         continue
 
                     try:
-                        time_us.append(float(row[time_idx].strip()))
-                        speed.append(float(row[speed_idx].strip()))
+                        values = {
+                            key: float(row[i].strip())
+                            for key, i in idx.items()
+                        }
                     except ValueError:
                         skip_count += 1
                         continue
+
+                    for key in columns:
+                        data[key].append(values[key])
 
         except Exception as e:
             self.append_log(f"Graph Read Error : {e}")
             return
 
-        if len(time_us) == 0:
+        if len(data["time_us"]) == 0:
             self.append_log(
                 f"Graph Data Empty : {filepath} "
                 f"(header={header_clean}, rows_read={row_count}, skipped={skip_count})"
@@ -716,21 +740,53 @@ class MonitorGUI:
             )
 
         # ------------------------------
+        # タイトル用のゲイン文字列
+        # ------------------------------
+        gain = self.last_gain
+
+        if gain["kp"] is None:
+            gain_text = "KP=?, KI=?, KD=?"
+        else:
+            gain_text = f"KP={gain['kp']}, KI={gain['ki']}, KD={gain['kd']}"
+
+        # ------------------------------
         # 別ウィンドウ作成
         # ------------------------------
         graph_win = tk.Toplevel(self.root)
         graph_win.title(f"Graph - {os.path.basename(filepath)}")
-        graph_win.geometry("700x550")
+        graph_win.geometry("800x600")
 
-        fig = Figure(figsize=(6, 5), dpi=100)
+        fig = Figure(figsize=(7, 5.5), dpi=100)
         ax = fig.add_subplot(111)
 
-        ax.scatter(time_us, speed, s=10)
+        # Speed / Target Speed は左軸 (cm/s)
+        line1, = ax.plot(
+            data["time_us"], data["speed_cm_s"],
+            label="Speed_cm_s", color="tab:blue", linewidth=2.2
+        )
+        line2, = ax.plot(
+            data["time_us"], data["target_speed_cm_s"],
+            label="Target_speed_cm_s", color="tab:orange",
+            linestyle="--", linewidth=2.2
+        )
 
         ax.set_xlabel("Time_us")
-        ax.set_ylabel("Speed")
-        ax.set_title(os.path.basename(filepath))
+        ax.set_ylabel("Speed [cm/s],PWM")
         ax.grid(True)
+
+        line3, = ax.plot(
+            data["time_us"], data["pwm"],
+            label="PWM", color="yellow", linewidth=2.5, alpha=0.9
+        )
+
+        lines = [line1, line2, line3]
+        ax.legend(lines, [l.get_label() for l in lines], loc="upper right")
+
+        ax.set_title(
+            f"{os.path.basename(filepath)}\n{gain_text}"
+        )
+
+        fig.tight_layout()
 
         canvas = FigureCanvasTkAgg(fig, master=graph_win)
         canvas.draw()
