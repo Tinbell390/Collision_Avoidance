@@ -103,11 +103,14 @@ uint32_t calculate_smoothed_interval_us()
     return static_cast<uint32_t>(sum / interval_buffer_count);
 }
 
+
+
+
 //--------------------------------------------------
 // 現在速度取得
 //--------------------------------------------------
 
-int32_t calculate_current_speed_cm_s()
+uint32_t calculate_current_speed_cm_s()
 {
     const uint32_t median_interval_us = SMOOTH_FILTER_ENABLED ?
         calculate_smoothed_interval_us() :
@@ -126,7 +129,7 @@ int32_t calculate_current_speed_cm_s()
         return 0;
     }
 
-    return static_cast<int32_t>(static_cast<uint64_t>(LINE_PITCH_MM) * 100000ULL / effective_interval_us);
+    return static_cast<uint32_t>(static_cast<uint64_t>(LINE_PITCH_MM) * 100000ULL / effective_interval_us);
 }
 
 //--------------------------------------------------
