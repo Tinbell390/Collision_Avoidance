@@ -104,7 +104,63 @@ uint32_t calculate_smoothed_interval_us()
 }
 
 
+uint32_t trim_mean(){
+{
+    if (interval_buffer_count == 0) {
+        return INVALID_TIME_US;
+    }
 
+    uint32_t work_buffer_us[FILTER_WINDOW_SIZE];
+
+    for (int32_t i = 0; i < interval_buffer_count; i++) {
+        work_buffer_us[i] = interval_buffer_us[i];
+    }
+
+    // Sort
+    for (int32_t i = 0;
+         i < interval_buffer_count - 1;
+         i++) {
+
+        for (int32_t j = i + 1;
+             j < interval_buffer_count;
+             j++) {
+
+            if (work_buffer_us[i] >
+                work_buffer_us[j]) {
+
+                const uint32_t temporary_us =
+                    work_buffer_us[i];
+
+                work_buffer_us[i] =
+                    work_buffer_us[j];
+
+                work_buffer_us[j] =
+                    temporary_us;
+            }
+        }
+    }
+
+    // Average the middle 50%
+    const int32_t quarter =
+        interval_buffer_count / 4;
+
+    const int32_t start =
+        quarter;
+
+    const int32_t end =
+        interval_buffer_count - quarter;
+
+    uint64_t sum_us = 0;
+
+    for (int32_t i = start; i < end; i++) {
+        sum_us += work_buffer_us[i];
+    }
+
+    const int32_t count = end - start;
+
+    return (uint32_t)(sum_us / count);
+}
+}
 
 //--------------------------------------------------
 // 現在速度取得
@@ -112,9 +168,8 @@ uint32_t calculate_smoothed_interval_us()
 
 uint32_t calculate_current_speed_cm_s()
 {
-    const uint32_t median_interval_us = SMOOTH_FILTER_ENABLED ?
-        calculate_smoothed_interval_us() :
-        calculate_median_interval_us();
+    const uint32_t median_interval_us = calculate_smoothed_interval_us();
+
 
     const uint32_t current_interval_us = micros() - last_time_us;
 
