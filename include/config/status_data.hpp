@@ -10,7 +10,6 @@ struct StatusData {
     uint32_t line_count;                            // ラインカウント
     uint8_t pwm;                                    // PWM値（0-255）
     uint32_t time_to_enter_intersection_us;         // 交差点に入るまでの時間（マイクロ秒）
-    uint32_t time_to_exit_intersection_us;          // 交差点を出るまでの時間（マイクロ秒）
 };
 
 #endif // STATUS_DATA_HPP
