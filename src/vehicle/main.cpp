@@ -23,16 +23,16 @@ void setup(){
 void loop(){
     const uint32_t current_time_us =micros() - start_time_us;
     if(is_running&&current_time_us<RUN_TIME_LIMIT_US){
-        current_speed_cm_s=calculate_current_speed_cm_s();
-        current_pwm = calculate_pid_pwm(current_speed_cm_s, target_speed_cm_s);
-        const uint32_t current_interval_us =micros() - last_time_us;
-
         //現在の予測到着時間の計算
         self_enter_time_us=predict_time_to_intersection_us();
         self_exit_time_us=predict_time_to_exit_intersection_us();    
-        if(other_enter_time_us != INVALID_TIME_US && other_exit_time_us != INVALID_TIME_US){
-            target_speed_cm_s = calculate_collision_avoidance_speed_cm_s();
+        if(other_enter_time_us != INVALID_TIME_US && other_exit_time_us != INVALID_TIME_US&&other_timestamp_us != INVALID_TIME_US){
+            target_speed_cm_s = calculate_collision_avoidance_speed_cm_s(current_time_us);
         }
+
+        current_speed_cm_s=calculate_current_speed_cm_s();
+        current_pwm = calculate_pid_pwm(current_speed_cm_s, target_speed_cm_s);
+        const uint32_t current_interval_us =current_time_us + start_time_us - last_time_us;
 
         // 交差点を通過したら停止
         if(line_count>DIST_TO_INTERSECTION_ENTRY_MM/LINE_PITCH_MM){
