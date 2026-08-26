@@ -6,21 +6,38 @@
 // 実験1で使用する
 // esp-nowの導通確認実験
 
-void AddPeer(const uint8_t *mac_addr);
-void PrintMacAddress(const uint8_t *mac_addr);
-void SendHello();
-void SendAck(const uint8_t *mac_addr);
-void SendPing(const uint8_t *mac_addr);
-void SendPong(const uint8_t *mac_addr);
-void SendDataRequest(const uint8_t *mac_addr);
-void SendData(const uint8_t *mac_addr);
-void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int len);
+void add_peer(const uint8_t *mac_addr);
+void print_mac_address(const uint8_t *mac_addr);
+void send_hello();
+void send_ping(const uint8_t *mac_addr);
+void send_pong(const uint8_t *mac_addr);
+void send_data_request(const uint8_t *mac_addr);
+void send_data(const uint8_t *mac_addr);
+void on_data_recv(const uint8_t *mac_addr, const uint8_t *data, int len);
 
-uint32_t PINGSTART;
-uint32_t DATASTART;
+// ------------------------------
+// コマンド文字列の固定長プレフィックス
+// ------------------------------
+constexpr size_t ADDPEER_PREFIX_LEN = 8;  // "addpeer "
+constexpr size_t PING_PREFIX_LEN    = 5;  // "PING "
+constexpr size_t DATAREQ_PREFIX_LEN = 8;  // "DATAREQ "
+
+// ------------------------------
+// ダミーデータ生成用パラメータ
+// ------------------------------
+constexpr int32_t DUMMY_SPEED_MIN_CM_S   = 500;
+constexpr int32_t DUMMY_SPEED_RANGE_CM_S = 500;
+constexpr uint8_t DUMMY_PWM_MIN          = 50;
+constexpr uint8_t DUMMY_PWM_RANGE        = 100;
+constexpr uint32_t DUMMY_ENTER_OFFSET_MS = 1000;
+constexpr uint32_t DUMMY_EXIT_OFFSET_MS  = 500;
+
+// PING/DATA_REQを送信した時刻（RTT計算用）
+uint32_t ping_start_time_ms;
+uint32_t data_start_time_ms;
 
 // パケット種別（全パケット共通のヘッダとして使う）
-enum PacketType : uint8_t{
+enum class PacketType : uint8_t{
     HELLO,
     ACK,
     PING,
@@ -46,12 +63,12 @@ struct DataPacket{
     StatusData payload;
 };
 
-uint8_t broadcastAddress[6] = {
+uint8_t broadcast_address[6] = {
     0xFF, 0xFF, 0xFF,
     0xFF, 0xFF, 0xFF
 };
 
-uint8_t unicastAddress[6];
+uint8_t unicast_address[6];
 
 void setup(){
     // シリアル通信開始
@@ -67,10 +84,10 @@ void setup(){
     }
 
     // コールバック関数登録
-    esp_now_register_recv_cb(OnDataRecv);
+    esp_now_register_recv_cb(on_data_recv);
 
     // ブロードキャストアドレスをPeer登録
-    AddPeer(broadcastAddress);
+    add_peer(broadcast_address);
 
     Serial.println("ESP-NOW Ready");
 }
@@ -78,26 +95,23 @@ void setup(){
 //--------------------------------------------------
 // Peer登録
 //--------------------------------------------------
-void AddPeer(const uint8_t *mac_addr){
+void add_peer(const uint8_t *mac_addr){
     Serial.print("Add Peer : ");
-    PrintMacAddress(mac_addr);
+    print_mac_address(mac_addr);
 
     if(esp_now_is_peer_exist(mac_addr)){
         Serial.println("Peer already exists");
         return;
     }
 
+    esp_now_peer_info_t peer_info = {};
 
-    esp_now_peer_info_t peerInfo = {};
+    memcpy(peer_info.peer_addr, mac_addr, 6);
 
-    memcpy(peerInfo.peer_addr, mac_addr, 6);
+    peer_info.channel = 0;
+    peer_info.encrypt = false;
 
-    peerInfo.channel = 0;
-    peerInfo.encrypt = false;
-
-
-    esp_err_t result = esp_now_add_peer(&peerInfo);
-
+    const esp_err_t result = esp_now_add_peer(&peer_info);
 
     if(result == ESP_OK){
         Serial.println("Peer Added");
@@ -111,12 +125,12 @@ void AddPeer(const uint8_t *mac_addr){
 //--------------------------------------------------
 // HELLO送信（ブロードキャスト）
 //--------------------------------------------------
-void SendHello(){
+void send_hello(){
     Packet packet;
-    packet.header.type = HELLO;
+    packet.header.type = PacketType::HELLO;
 
     Serial.println();
-    if(esp_now_send(broadcastAddress, (uint8_t *)&packet, sizeof(packet)) == ESP_OK){
+    if(esp_now_send(broadcast_address, (uint8_t *)&packet, sizeof(packet)) == ESP_OK){
         Serial.println("Send : HELLO");
     }
     else{
@@ -128,7 +142,7 @@ void SendHello(){
 //--------------------------------------------------
 // MACアドレス表示
 //--------------------------------------------------
-void PrintMacAddress(const uint8_t *mac_addr){
+void print_mac_address(const uint8_t *mac_addr){
     for (int i = 0; i < 6; i++){
         Serial.printf("%02X", mac_addr[i]);
         if (i != 5) Serial.print(":");
@@ -139,14 +153,14 @@ void PrintMacAddress(const uint8_t *mac_addr){
 //--------------------------------------------------
 // PING送信（ユニキャスト）
 //--------------------------------------------------
-void SendPing(const uint8_t *mac_addr){
+void send_ping(const uint8_t *mac_addr){
     Packet packet;
-    packet.header.type = PING;
-    PINGSTART = millis();
+    packet.header.type = PacketType::PING;
+    ping_start_time_ms = millis();
 
     Serial.println();
     Serial.print("Send : PING -> ");
-    PrintMacAddress(mac_addr);
+    print_mac_address(mac_addr);
 
     if(esp_now_send(mac_addr, (uint8_t *)&packet, sizeof(packet)) == ESP_OK){
         Serial.println("PING Send OK");
@@ -161,12 +175,12 @@ void SendPing(const uint8_t *mac_addr){
 //--------------------------------------------------
 // PONG送信（ユニキャスト）
 //--------------------------------------------------
-void SendPong(const uint8_t *mac_addr){
+void send_pong(const uint8_t *mac_addr){
     Packet packet;
-    packet.header.type = PONG;
+    packet.header.type = PacketType::PONG;
 
     Serial.print("Send : PONG -> ");
-    PrintMacAddress(mac_addr);
+    print_mac_address(mac_addr);
 
     if(esp_now_send(mac_addr, (uint8_t *)&packet, sizeof(packet)) == ESP_OK){
         Serial.println("PONG Send OK");
@@ -181,14 +195,14 @@ void SendPong(const uint8_t *mac_addr){
 // DATA_REQ送信（ユニキャスト）
 // 相手に対してデータ本体の送信を要求する
 //--------------------------------------------------
-void SendDataRequest(const uint8_t *mac_addr){
+void send_data_request(const uint8_t *mac_addr){
     Packet packet;
-    packet.header.type = DATA_REQ;
-    DATASTART = millis();
+    packet.header.type = PacketType::DATA_REQ;
+    data_start_time_ms = millis();
 
     Serial.println();
     Serial.print("Send : DATA_REQ -> ");
-    PrintMacAddress(mac_addr);
+    print_mac_address(mac_addr);
 
     if(esp_now_send(mac_addr, (uint8_t *)&packet, sizeof(packet)) == ESP_OK){
         Serial.println("DATA_REQ Send OK");
@@ -204,39 +218,39 @@ void SendDataRequest(const uint8_t *mac_addr){
 // DATA送信（ユニキャスト）
 // ダミーデータ本体を送信する
 //--------------------------------------------------
-void SendData(const uint8_t *mac_addr){
+void send_data(const uint8_t *mac_addr){
 
     DataPacket packet;
 
-    packet.header.type = DATA;
+    packet.header.type = PacketType::DATA;
 
 
     // -----------------------------
     // ダミーデータ生成
     // -----------------------------
 
-    static uint32_t counter = 0;
+    static uint32_t send_count = 0;
 
     packet.payload.timestamp_us = micros();
 
     // 速度 500〜1000 の範囲で変化
-    packet.payload.speed_cm_s = 500 + (counter % 500);
+    packet.payload.speed_cm_s = DUMMY_SPEED_MIN_CM_S + (send_count % DUMMY_SPEED_RANGE_CM_S);
 
     // PWM 50〜150
-    packet.payload.pwm = 50 + (counter % 100);
+    packet.payload.pwm = DUMMY_PWM_MIN + (send_count % DUMMY_PWM_RANGE);
 
     // 交差点突入時間
-    packet.payload.time_to_enter_intersection_us = millis() + 1000;
+    packet.payload.time_to_enter_intersection_us = millis() + DUMMY_ENTER_OFFSET_MS;
 
     // 交差点退出時間
-    packet.payload.time_to_exit_intersection_us = packet.payload.time_to_enter_intersection_us + 500;
+    packet.payload.time_to_exit_intersection_us = packet.payload.time_to_enter_intersection_us + DUMMY_EXIT_OFFSET_MS;
 
-    counter++;
+    send_count++;
 
 
     Serial.println();
     Serial.print("Send : DATA -> ");
-    PrintMacAddress(mac_addr);
+    print_mac_address(mac_addr);
 
     Serial.println("Dummy Data:");
     Serial.print(" time_us   : ");
@@ -265,7 +279,7 @@ void SendData(const uint8_t *mac_addr){
 //--------------------------------------------------
 // 受信コールバック
 //--------------------------------------------------
-void OnDataRecv(const uint8_t *mac_addr,const uint8_t *data,int len){
+void on_data_recv(const uint8_t *mac_addr,const uint8_t *data,int len){
     // ヘッダ長すら無い場合は不正パケットとして破棄
     if(len < (int)sizeof(PacketHeader)){
         Serial.println("Invalid Packet Size");
@@ -276,7 +290,7 @@ void OnDataRecv(const uint8_t *mac_addr,const uint8_t *data,int len){
     const PacketHeader *header = (const PacketHeader *)data;
 
     switch(header->type){
-        case HELLO:{
+        case PacketType::HELLO:{
             if (len != sizeof(Packet)){
                 Serial.println("Invalid HELLO Packet Size");
                 break;
@@ -284,15 +298,15 @@ void OnDataRecv(const uint8_t *mac_addr,const uint8_t *data,int len){
 
             Serial.println();
             Serial.print("Recv : HELLO from ");
-            
-            PrintMacAddress(mac_addr);
+
+            print_mac_address(mac_addr);
 
             Serial.println();
             break;
         }
 
 
-        case PING:{
+        case PacketType::PING:{
             if (len != sizeof(Packet)){
                 Serial.println("Invalid PING Packet Size");
                 break;
@@ -300,36 +314,36 @@ void OnDataRecv(const uint8_t *mac_addr,const uint8_t *data,int len){
 
             Serial.println();
             Serial.print("Recv : PING from ");
-            PrintMacAddress(mac_addr);
+            print_mac_address(mac_addr);
 
             // PONG返信
-            SendPong(mac_addr);
+            send_pong(mac_addr);
             Serial.println();
             break;
         }
 
 
-        case PONG:{
+        case PacketType::PONG:{
             if (len != sizeof(Packet)){
                 Serial.println("Invalid PONG Packet Size");
                 break;
             }
 
-            uint32_t elapsed = millis() - PINGSTART;
+            const uint32_t elapsed_ms = millis() - ping_start_time_ms;
 
             Serial.println();
             Serial.print("Recv : PONG from ");
-            PrintMacAddress(mac_addr);
+            print_mac_address(mac_addr);
 
             Serial.print("RTT : ");
-            Serial.print(elapsed);
+            Serial.print(elapsed_ms);
             Serial.println(" ms");
             Serial.println();
             break;
         }
 
 
-        case DATA_REQ:{
+        case PacketType::DATA_REQ:{
             if (len != sizeof(Packet)){
                 Serial.println("Invalid DATA_REQ Packet Size");
                 break;
@@ -337,51 +351,51 @@ void OnDataRecv(const uint8_t *mac_addr,const uint8_t *data,int len){
 
             Serial.println();
             Serial.print("Recv : DATA_REQ from ");
-            PrintMacAddress(mac_addr);
+            print_mac_address(mac_addr);
 
             // 要求されたのでデータ本体を返信
-            SendData(mac_addr);
+            send_data(mac_addr);
 
             Serial.println();
             break;
         }
 
 
-        case DATA:{
+        case PacketType::DATA:{
             if (len != sizeof(DataPacket)){
                 Serial.println("Invalid DATA Packet Size");
                 break;
             }
 
-            uint32_t elapsed = millis() - DATASTART;
+            const uint32_t elapsed_ms = millis() - data_start_time_ms;
 
             Serial.println();
             Serial.print("Recv : DATA from ");
-            PrintMacAddress(mac_addr);
+            print_mac_address(mac_addr);
 
             //ダミーデータ表示 (dataをDataPacketでキャスト)
 
-            DataPacket *recvPacket = (DataPacket *)data;
+            const DataPacket *recv_packet = (const DataPacket *)data;
 
             Serial.println("DATA:");
 
             Serial.print(" time_us   : ");
-            Serial.println(recvPacket->payload.timestamp_us);
+            Serial.println(recv_packet->payload.timestamp_us);
 
             Serial.print(" speed     : ");
-            Serial.println(recvPacket->payload.speed_cm_s);
+            Serial.println(recv_packet->payload.speed_cm_s);
 
             Serial.print(" pwm       : ");
-            Serial.println(recvPacket->payload.pwm);
+            Serial.println(recv_packet->payload.pwm);
 
             Serial.print(" enterTime : ");
-            Serial.println(recvPacket->payload.time_to_enter_intersection_us);
+            Serial.println(recv_packet->payload.time_to_enter_intersection_us);
 
             Serial.print(" exitTime  : ");
-            Serial.println(recvPacket->payload.time_to_exit_intersection_us);
+            Serial.println(recv_packet->payload.time_to_exit_intersection_us);
 
             Serial.print("RTT : ");
-            Serial.print(elapsed);
+            Serial.print(elapsed_ms);
             Serial.println(" ms");
             Serial.println();
             break;
@@ -407,24 +421,24 @@ void loop(){
 
         // HELLO送信
         if(command == "HELLO"){
-            SendHello();
+            send_hello();
         }
 
         // Peer登録
         else if(command.startsWith("addpeer")){
-            uint8_t mac[6];
+            uint8_t mac_address[6];
 
             // "addpeer "以降を取得
-            String macString = command.substring(8);
+            const String mac_string = command.substring(ADDPEER_PREFIX_LEN);
 
-            if(sscanf(macString.c_str(),
+            if(sscanf(mac_string.c_str(),
                        "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
-                       &mac[0], &mac[1], &mac[2],
-                       &mac[3], &mac[4], &mac[5]) == 6){
+                       &mac_address[0], &mac_address[1], &mac_address[2],
+                       &mac_address[3], &mac_address[4], &mac_address[5]) == 6){
                 Serial.print("Add Peer : ");
-                PrintMacAddress(mac);
+                print_mac_address(mac_address);
 
-                AddPeer(mac);
+                add_peer(mac_address);
             }
             else{
                 Serial.println("Invalid MAC Address");
@@ -433,16 +447,16 @@ void loop(){
 
         // PING送信
         else if(command.startsWith("PING")){
-            uint8_t mac[6];
+            uint8_t mac_address[6];
 
             // "PING "以降を取得
-            String macString = command.substring(5);
+            const String mac_string = command.substring(PING_PREFIX_LEN);
 
-            if(sscanf(macString.c_str(),
+            if(sscanf(mac_string.c_str(),
                        "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
-                       &mac[0], &mac[1], &mac[2],
-                       &mac[3], &mac[4], &mac[5]) == 6){
-                SendPing(mac);
+                       &mac_address[0], &mac_address[1], &mac_address[2],
+                       &mac_address[3], &mac_address[4], &mac_address[5]) == 6){
+                send_ping(mac_address);
             }
             else{
                 Serial.println("Invalid MAC Address");
@@ -451,16 +465,16 @@ void loop(){
 
         // DATAREQ送信
         else if(command.startsWith("DATAREQ")){
-            uint8_t mac[6];
+            uint8_t mac_address[6];
 
             // "DATAREQ "以降を取得
-            String macString = command.substring(8);
+            const String mac_string = command.substring(DATAREQ_PREFIX_LEN);
 
-            if(sscanf(macString.c_str(),
+            if(sscanf(mac_string.c_str(),
                        "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
-                       &mac[0], &mac[1], &mac[2],
-                       &mac[3], &mac[4], &mac[5]) == 6){
-                SendDataRequest(mac);
+                       &mac_address[0], &mac_address[1], &mac_address[2],
+                       &mac_address[3], &mac_address[4], &mac_address[5]) == 6){
+                send_data_request(mac_address);
             }
             else{
                 Serial.println("Invalid MAC Address");
