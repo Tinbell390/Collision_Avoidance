@@ -23,14 +23,11 @@ constexpr int32_t MM_PER_CM = 10;
 // is_collision_detected == false:
 //     相手と交差点内で干渉しないようにする
 //--------------------------------------------------
-int32_t calculate_collision_avoidance_speed_cm_s(uint32_t current_time_us)
-{
+int32_t calculate_collision_avoidance_speed_cm_s(uint32_t current_time_us){
 
     // 相手の情報が無効(未受信 or 使用済み)なら回避ロジックを走らせない
-    if (other_enter_time_us == INVALID_TIME_US ||
-        other_exit_time_us  == INVALID_TIME_US ||
-        other_timestamp_us  == INVALID_TIME_US) {
-        return target_speed_cm_s;   // あるいは MAX_SPEED_CM_S で通常走行に復帰
+    if (other_enter_time_us == INVALID_TIME_US || other_exit_time_us  == INVALID_TIME_US || other_timestamp_us  == INVALID_TIME_US) {
+        return target_speed_cm_s;   
     }
 
     // 相手が交差点から離脱していれば初期速度に戻す
@@ -38,21 +35,19 @@ int32_t calculate_collision_avoidance_speed_cm_s(uint32_t current_time_us)
         return DEFAULT_SPEED_CM_S;
     }
 
-    uint32_t other_enter_remaining_us = other_enter_time_us + other_timestamp_us - (current_time_us);
-    uint32_t other_exit_remaining_us = other_exit_time_us + other_timestamp_us - (current_time_us);
+    // 相手の交差点突入までの残り時間 [us]をタイムスタンプで補正する
+    uint32_t other_enter_remaining_us = other_enter_time_us + other_timestamp_us - (current_time_us);   // 相手の交差点突入までの残り時間 [us]
+    uint32_t other_exit_remaining_us = other_exit_time_us + other_timestamp_us - (current_time_us);     // 相手の交差点離脱までの残り時間 [us]
 
     //--------------------------------------------------
     // 現在位置 [mm]
     //--------------------------------------------------
-    const int32_t current_position_mm =
-        line_count * LINE_PITCH_MM;
+    const int32_t current_position_mm = line_count * LINE_PITCH_MM;
 
     //--------------------------------------------------
     // 交差点入口までの残り距離 [mm]
     //--------------------------------------------------
-    const int32_t remaining_distance_mm =
-        DIST_TO_INTERSECTION_ENTRY_MM -
-        current_position_mm;
+    const int32_t remaining_distance_mm = DIST_TO_INTERSECTION_ENTRY_MM - current_position_mm;
 
     //--------------------------------------------------
     // すでに交差点入口を通過している場合
@@ -83,22 +78,15 @@ int32_t calculate_collision_avoidance_speed_cm_s(uint32_t current_time_us)
     // -------------------------------------------------
     // 自車の情報が無効なら現在速度を維持する
     //--------------------------------------------------
-    if(my_enter_remaining_us == INVALID_TIME_US ||
-       my_exit_remaining_us  == INVALID_TIME_US) {
+    if(my_enter_remaining_us == INVALID_TIME_US || my_exit_remaining_us  == INVALID_TIME_US || my_enter_remaining_us>my_exit_remaining_us){ 
         return target_speed_cm_s;
     }
 
     //--------------------------------------------------
     // 自車が交差点内に滞在する時間 [us]
     //--------------------------------------------------
-    uint32_t my_intersection_time_us = 0;
+    uint32_t my_intersection_time_us = my_exit_remaining_us - my_enter_remaining_us;
 
-    // -------------------------------------------------
-    // 自車が交差点内に滞在する時間を計算
-    //--------------------------------------------------
-    if (my_exit_remaining_us > my_enter_remaining_us) {
-        my_intersection_time_us = my_exit_remaining_us - my_enter_remaining_us;
-    }
 
     //--------------------------------------------------
     // 目標突入までの残り時間 [us]
@@ -121,10 +109,7 @@ int32_t calculate_collision_avoidance_speed_cm_s(uint32_t current_time_us)
     // 自車の突入までの残り時間を一致させる。
     //--------------------------------------------------
     if (is_collision_detected) {
-
-        desired_enter_remaining_us =
-            static_cast<int64_t>(
-                other_enter_remaining_us);
+        desired_enter_remaining_us = static_cast<int64_t>(other_enter_remaining_us);
     }
 
     // -------------------------------------------------
@@ -145,19 +130,11 @@ int32_t calculate_collision_avoidance_speed_cm_s(uint32_t current_time_us)
     // 自車が交差点を通過し終わってから
     // 相手が突入するようにする。
     //--------------------------------------------------
-    else if (
-        static_cast<uint64_t>(my_enter_remaining_us) <
-        static_cast<uint64_t>(other_enter_remaining_us)) {
-
+    else if (static_cast<uint64_t>(my_enter_remaining_us) < static_cast<uint64_t>(other_enter_remaining_us)) {
         desired_enter_remaining_us =
-            static_cast<int64_t>(
-                other_enter_remaining_us)
-            -
-            static_cast<int64_t>(
-                my_intersection_time_us)
-            -
-            static_cast<int64_t>(
-                TIME_MARGIN_US);
+            static_cast<int64_t>(other_enter_remaining_us)
+            - static_cast<int64_t>(my_intersection_time_us)
+            - static_cast<int64_t>(TIME_MARGIN_US);
     }
 
     //--------------------------------------------------
@@ -171,13 +148,9 @@ int32_t calculate_collision_avoidance_speed_cm_s(uint32_t current_time_us)
     // TIME_MARGIN_US 後に自車が突入する。
     //--------------------------------------------------
     else {
-
         desired_enter_remaining_us =
-            static_cast<int64_t>(
-                other_exit_remaining_us)
-            +
-            static_cast<int64_t>(
-                TIME_MARGIN_US);
+            static_cast<int64_t>(other_exit_remaining_us)
+            + static_cast<int64_t>(TIME_MARGIN_US);
     }
 
     //--------------------------------------------------
@@ -201,19 +174,13 @@ int32_t calculate_collision_avoidance_speed_cm_s(uint32_t current_time_us)
     // さらに / 10 して cm/s に変換する。
     //--------------------------------------------------
     const uint64_t required_speed_cm_s =
-        static_cast<uint64_t>(remaining_distance_mm) *
-        MICROSECONDS_PER_SECOND /
-        static_cast<uint64_t>(desired_enter_remaining_us) /
-        MM_PER_CM;
+        static_cast<uint64_t>(remaining_distance_mm) * MICROSECONDS_PER_SECOND 
+        / static_cast<uint64_t>(desired_enter_remaining_us) / MM_PER_CM;
 
     //--------------------------------------------------
     // MIN～MAXに制限
     //--------------------------------------------------
-    const int32_t target_speed_cm_s =
-        constrain(
-            static_cast<int32_t>(required_speed_cm_s),
-            MIN_SPEED_CM_S,
-            MAX_SPEED_CM_S);
+    const int32_t target_speed_cm_s = constrain(static_cast<int32_t>(required_speed_cm_s),MIN_SPEED_CM_S,MAX_SPEED_CM_S);
 
     //--------------------------------------------------
     // 処理後に受信した他車の情報を破棄する
