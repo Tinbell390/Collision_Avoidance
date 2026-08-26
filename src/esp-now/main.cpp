@@ -39,7 +39,6 @@ uint32_t data_start_time_ms;
 // パケット種別（全パケット共通のヘッダとして使う）
 enum class PacketType : uint8_t{
     HELLO,
-    ACK,
     PING,
     PONG,
     DATA_REQ,   // データ要求
@@ -52,7 +51,7 @@ struct PacketHeader{
     PacketType type;
 };
 
-// ヘッダのみのパケット（HELLO, ACK, PING, PONG, DATA_REQ用）
+// ヘッダのみのパケット（HELLO, PING, PONG, DATA_REQ用）
 struct Packet{
     PacketHeader header;
 };
