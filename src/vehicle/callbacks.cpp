@@ -17,6 +17,13 @@ void handle_start_packet(bool collision,bool lonery){
     is_lonely = lonery;
     target_speed_cm_s=first_target_speed_cm_s;
     line_count=0;
+    other_enter_time_us=INVALID_TIME_US;
+    other_exit_time_us=INVALID_TIME_US;
+    other_timestamp_us=INVALID_TIME_US;
+    current_speed_cm_s=0;
+    current_pwm=0;
+    self_enter_time_us=INVALID_TIME_US;
+    self_exit_time_us=INVALID_TIME_US;
     reset_controller();
     clear_sensor_interval_buffer();
 }
