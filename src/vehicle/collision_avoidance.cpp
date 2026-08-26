@@ -73,14 +73,12 @@ int32_t calculate_collision_avoidance_speed_cm_s(uint32_t current_time_us)
     //
     // prediction.cppから取得
     //--------------------------------------------------
-    const uint32_t my_enter_remaining_us =
-        predict_time_to_intersection_us();
+    const uint32_t my_enter_remaining_us = self_enter_time_us;
 
     //--------------------------------------------------
     // 自車の現在速度での交差点離脱までの残り時間
     //--------------------------------------------------
-    const uint32_t my_exit_remaining_us =
-        predict_time_to_exit_intersection_us();
+    const uint32_t my_exit_remaining_us =self_exit_time_us;
 
     // -------------------------------------------------
     // 自車の情報が無効なら現在速度を維持する

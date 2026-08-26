@@ -24,6 +24,7 @@ void handle_start_packet(bool collision,bool lonery){
     current_pwm=0;
     self_enter_time_us=INVALID_TIME_US;
     self_exit_time_us=INVALID_TIME_US;
+    intersection_entry_time_us=INVALID_TIME_US;
     reset_controller();
     clear_sensor_interval_buffer();
 }

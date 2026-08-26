@@ -11,7 +11,9 @@ extern volatile bool is_started;                        // ビークルがスタ
 extern volatile bool should_save;                       // ログを保存するかどうかのフラグ
 
 extern volatile uint32_t start_time_us;                 // スタート時間（マイクロ秒）
-extern volatile uint32_t last_time_us;                  // センサが最後に更新された時間（マイクロ秒） 
+extern volatile uint32_t last_time_us;                  // センサが最後に更新された時間（マイクロ秒）
+extern volatile uint32_t intersection_entry_time_us;          // 交差点に入る時間（マイクロ秒）
+
 
 extern volatile int32_t current_speed_cm_s;             // 現在の速度（センチメートル毎秒）
 extern volatile int32_t target_speed_cm_s;              // 目標速度（センチメートル毎秒）
