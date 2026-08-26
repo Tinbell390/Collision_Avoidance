@@ -23,7 +23,7 @@ constexpr int32_t MM_PER_CM = 10;
 // is_collision_detected == false:
 //     相手と交差点内で干渉しないようにする
 //--------------------------------------------------
-int32_t calculate_collision_avoidance_speed_cm_s()
+int32_t calculate_collision_avoidance_speed_cm_s(uint32_t current_time_us)
 {
 
     // 相手の情報が無効(未受信 or 使用済み)なら回避ロジックを走らせない
@@ -33,9 +33,8 @@ int32_t calculate_collision_avoidance_speed_cm_s()
         return current_speed_cm_s;   // あるいは MAX_SPEED_CM_S で通常走行に復帰
     }
 
-    uint32_t now_us = micros();
-    uint32_t other_enter_remaining_us = other_enter_time_us + other_timestamp_us - (now_us - start_time_us);
-    uint32_t other_exit_remaining_us = other_exit_time_us + other_timestamp_us - (now_us - start_time_us);
+    uint32_t other_enter_remaining_us = other_enter_time_us + other_timestamp_us - (current_time_us);
+    uint32_t other_exit_remaining_us = other_exit_time_us + other_timestamp_us - (current_time_us);
 
     //--------------------------------------------------
     // 現在位置 [mm]
@@ -78,17 +77,24 @@ int32_t calculate_collision_avoidance_speed_cm_s()
     const uint32_t my_exit_remaining_us =
         predict_time_to_exit_intersection_us();
 
+    // -------------------------------------------------
+    // 自車の情報が無効なら現在速度を維持する
+    //--------------------------------------------------
+    if(my_enter_remaining_us == INVALID_TIME_US ||
+       my_exit_remaining_us  == INVALID_TIME_US) {
+        return current_speed_cm_s;
+    }
+
     //--------------------------------------------------
     // 自車が交差点内に滞在する時間 [us]
     //--------------------------------------------------
     uint32_t my_intersection_time_us = 0;
 
-    if (my_exit_remaining_us != INVALID_TIME_US &&
-        my_exit_remaining_us > my_enter_remaining_us) {
-
-        my_intersection_time_us =
-            my_exit_remaining_us -
-            my_enter_remaining_us;
+    // -------------------------------------------------
+    // 自車が交差点内に滞在する時間を計算
+    //--------------------------------------------------
+    if (my_exit_remaining_us > my_enter_remaining_us) {
+        my_intersection_time_us = my_exit_remaining_us - my_enter_remaining_us;
     }
 
     //--------------------------------------------------
