@@ -3,7 +3,6 @@
 float pid_integral=0.0F;
 float pid_previous_error=0.0F;
 
-float alpha = 0.5F; // 平滑化係数（0 < alpha < 1）
 uint8_t previous_pwm = 0; // 前回のPWM値
 
 // 課題としてコントローラを設計させる
