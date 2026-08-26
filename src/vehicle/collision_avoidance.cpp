@@ -30,7 +30,12 @@ int32_t calculate_collision_avoidance_speed_cm_s(uint32_t current_time_us)
     if (other_enter_time_us == INVALID_TIME_US ||
         other_exit_time_us  == INVALID_TIME_US ||
         other_timestamp_us  == INVALID_TIME_US) {
-        return current_speed_cm_s;   // あるいは MAX_SPEED_CM_S で通常走行に復帰
+        return target_speed_cm_s;   // あるいは MAX_SPEED_CM_S で通常走行に復帰
+    }
+
+    // 相手が交差点から離脱していれば初期速度に戻す
+    if(other_exit_time_us == 0){
+        return DEFAULT_SPEED_CM_S;
     }
 
     uint32_t other_enter_remaining_us = other_enter_time_us + other_timestamp_us - (current_time_us);
@@ -53,14 +58,14 @@ int32_t calculate_collision_avoidance_speed_cm_s(uint32_t current_time_us)
     // すでに交差点入口を通過している場合
     //--------------------------------------------------
     if (remaining_distance_mm <= 0) {
-        return current_speed_cm_s;
+        return target_speed_cm_s;
     }
 
     //--------------------------------------------------
     // 現在速度が0の場合
     //--------------------------------------------------
     if (current_speed_cm_s <= 0) {
-        return MIN_SPEED_CM_S;
+        return target_speed_cm_s;
     }
 
     //--------------------------------------------------
@@ -82,7 +87,7 @@ int32_t calculate_collision_avoidance_speed_cm_s(uint32_t current_time_us)
     //--------------------------------------------------
     if(my_enter_remaining_us == INVALID_TIME_US ||
        my_exit_remaining_us  == INVALID_TIME_US) {
-        return current_speed_cm_s;
+        return target_speed_cm_s;
     }
 
     //--------------------------------------------------
@@ -102,6 +107,13 @@ int32_t calculate_collision_avoidance_speed_cm_s(uint32_t current_time_us)
     //--------------------------------------------------
     int64_t desired_enter_remaining_us = 0;
 
+    // -------------------------------------------------
+    // 自車と相手の到着までの時間差 [us]
+    //--------------------------------------------------
+    int64_t separation_time_us = (my_enter_remaining_us <= other_enter_remaining_us)?
+        static_cast<int64_t>(other_enter_remaining_us) - static_cast<int64_t>(my_exit_remaining_us): 
+        static_cast<int64_t>(my_enter_remaining_us) - static_cast<int64_t>(other_exit_remaining_us);
+
     //--------------------------------------------------
     // CASE 1
     //
@@ -115,6 +127,13 @@ int32_t calculate_collision_avoidance_speed_cm_s(uint32_t current_time_us)
         desired_enter_remaining_us =
             static_cast<int64_t>(
                 other_enter_remaining_us);
+    }
+
+    // -------------------------------------------------
+    // 相手と自分の到着までの時間がマージン以上なら現在の目標速度を返す
+    // --------------------------------------------------
+    else if (separation_time_us >= static_cast<int64_t>(TIME_MARGIN_US)) {
+        return target_speed_cm_s;
     }
 
     //--------------------------------------------------
@@ -169,7 +188,7 @@ int32_t calculate_collision_avoidance_speed_cm_s(uint32_t current_time_us)
     // これ以上減速しても目標時間には間に合わない。
     //--------------------------------------------------
     if (desired_enter_remaining_us <= 0) {
-        return current_speed_cm_s;
+        return target_speed_cm_s;
     }
 
     //--------------------------------------------------
