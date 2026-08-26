@@ -40,9 +40,8 @@ constexpr uint32_t CONTROL_INTERVAL_MS           = 10;     // 制御ループの
 // ============================================================
 // フィルタ (Filters)
 // ============================================================
-constexpr uint8_t MEDIAN_FILTER_WINDOW_SIZE      = 11;     // メディアンフィルタのウィンドウサイズ（奇数）
-constexpr uint8_t SMOOTH_FILTER_WINDOW_SIZE      = 10;     // スムージングフィルタのウィンドウサイズ
-constexpr bool    SMOOTH_FILTER_ENABLED          = true;   // スムージングフィルタの有効化フラグ
+constexpr uint8_t FILTER_WINDOW_SIZE      = 10;     // フィルタのウィンドウサイズ
+
 
 // ============================================================
 // PWM制限 (PWM Limits)

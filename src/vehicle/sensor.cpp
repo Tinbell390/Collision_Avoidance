@@ -3,13 +3,12 @@
 #include "esp_intr_alloc.h"
 #include "config.hpp"
 #include "sensor.hpp"
-const uint8_t FILTER_WINDOW_SIZE = SMOOTH_FILTER_ENABLED ? SMOOTH_FILTER_WINDOW_SIZE : MEDIAN_FILTER_WINDOW_SIZE;
-uint32_t interval_buffer_us[FILTER_WINDOW_SIZE];
+uint32_t interval_ring_buffer_us[FILTER_WINDOW_SIZE];    // センサデータを格納するリングバッファ
 
-bool is_sensor_enabled = false;
+bool is_sensor_enabled = false;                         // センサの立ち上がり立ち下がりを判別するフラグ
 
-int32_t interval_buffer_head = 0;
-int32_t interval_buffer_count = 0;
+int32_t interval_ring_buffer_head = 0;                  // リングバッファの次の書き込み場所
+int32_t interval_ring_buffer_count = 0;                 // リングバッファに格納されたデータの数
 
 
 
@@ -19,14 +18,14 @@ int32_t interval_buffer_count = 0;
 
 void push_sensor_interval_us(uint32_t interval_us)
 {
-    interval_buffer_us[interval_buffer_head] = interval_us;
+    interval_ring_buffer_us[interval_ring_buffer_head] = interval_us;
 
-    interval_buffer_head =
-        (interval_buffer_head + 1) %
+    interval_ring_buffer_head =
+        (interval_ring_buffer_head + 1) %
         FILTER_WINDOW_SIZE;
 
-    if (interval_buffer_count < FILTER_WINDOW_SIZE) {
-        interval_buffer_count++;
+    if (interval_ring_buffer_count < FILTER_WINDOW_SIZE) {
+        interval_ring_buffer_count++;
     }
 }
 
@@ -36,53 +35,8 @@ void push_sensor_interval_us(uint32_t interval_us)
 
 void clear_sensor_interval_buffer()
 {
-    interval_buffer_head = 0;
-    interval_buffer_count = 0;
-}
-
-//--------------------------------------------------
-// メディアンフィルタ
-//--------------------------------------------------
-
-uint32_t calculate_median_interval_us()
-{
-    if (interval_buffer_count == 0) {
-        return INVALID_TIME_US;
-    }
-
-    uint32_t work_buffer_us[FILTER_WINDOW_SIZE];
-
-    for (int32_t i = 0; i < interval_buffer_count; i++) {
-        work_buffer_us[i] =
-            interval_buffer_us[i];
-    }
-
-    for (int32_t i = 0;
-         i < interval_buffer_count - 1;
-         i++) {
-
-        for (int32_t j = i + 1;
-             j < interval_buffer_count;
-             j++) {
-
-            if (work_buffer_us[i] >
-                work_buffer_us[j]) {
-
-                const uint32_t temporary_us =
-                    work_buffer_us[i];
-
-                work_buffer_us[i] =
-                    work_buffer_us[j];
-
-                work_buffer_us[j] =
-                    temporary_us;
-            }
-        }
-    }
-
-    return work_buffer_us[
-        interval_buffer_count / 2
-    ];
+    interval_ring_buffer_head = 0;
+    interval_ring_buffer_count = 0;
 }
 
 //--------------------------------------------------
@@ -91,76 +45,18 @@ uint32_t calculate_median_interval_us()
 
 uint32_t calculate_smoothed_interval_us()
 {
-    if (interval_buffer_count == 0) {
+    if (interval_ring_buffer_count == 0) {
         return INVALID_TIME_US;
     }
 
     uint64_t sum = 0;
-    for (int32_t i = 0; i < interval_buffer_count; i++) {
-        sum += interval_buffer_us[i];
+    for (int32_t i = 0; i < interval_ring_buffer_count; i++) {
+        sum += interval_ring_buffer_us[i];
     }
 
-    return static_cast<uint32_t>(sum / interval_buffer_count);
+    return static_cast<uint32_t>(sum / interval_ring_buffer_count);
 }
 
-
-uint32_t trim_mean(){
-{
-    if (interval_buffer_count == 0) {
-        return INVALID_TIME_US;
-    }
-
-    uint32_t work_buffer_us[FILTER_WINDOW_SIZE];
-
-    for (int32_t i = 0; i < interval_buffer_count; i++) {
-        work_buffer_us[i] = interval_buffer_us[i];
-    }
-
-    // Sort
-    for (int32_t i = 0;
-         i < interval_buffer_count - 1;
-         i++) {
-
-        for (int32_t j = i + 1;
-             j < interval_buffer_count;
-             j++) {
-
-            if (work_buffer_us[i] >
-                work_buffer_us[j]) {
-
-                const uint32_t temporary_us =
-                    work_buffer_us[i];
-
-                work_buffer_us[i] =
-                    work_buffer_us[j];
-
-                work_buffer_us[j] =
-                    temporary_us;
-            }
-        }
-    }
-
-    // Average the middle 50%
-    const int32_t quarter =
-        interval_buffer_count / 4;
-
-    const int32_t start =
-        quarter;
-
-    const int32_t end =
-        interval_buffer_count - quarter;
-
-    uint64_t sum_us = 0;
-
-    for (int32_t i = start; i < end; i++) {
-        sum_us += work_buffer_us[i];
-    }
-
-    const int32_t count = end - start;
-
-    return (uint32_t)(sum_us / count);
-}
-}
 
 //--------------------------------------------------
 // 現在速度取得
