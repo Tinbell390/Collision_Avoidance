@@ -307,34 +307,6 @@ class MonitorGUI:
         ).pack(side="left", padx=5, pady=5)
 
         #------------------------------
-        # 任意コマンド送信
-        #------------------------------
-        raw_frame = ttk.Frame(self.root)
-        raw_frame.pack(fill="x", padx=10, pady=10)
-
-        ttk.Label(
-            raw_frame,
-            text="Command"
-        ).pack(side="left")
-
-        self.raw_var = tk.StringVar()
-
-        self.raw_entry = ttk.Entry(
-            raw_frame,
-            width=40,
-            textvariable=self.raw_var
-        )
-
-        self.raw_entry.pack(side="left", padx=5)
-        self.raw_entry.bind("<Return>", lambda e: self.send_raw())
-
-        ttk.Button(
-            raw_frame,
-            text="Send",
-            command=self.send_raw
-        ).pack(side="left", padx=5)
-
-        #------------------------------
         # ログ表示
         #------------------------------
         ttk.Label(
@@ -462,20 +434,6 @@ class MonitorGUI:
             return
 
         self.serial.send_datareq(mac)
-
-    #==================================================
-    # 任意コマンド送信
-    #==================================================
-    def send_raw(self):
-
-        command = self.raw_var.get().strip()
-
-        if command == "":
-            return
-
-        self.serial.send(command)
-
-        self.raw_var.set("")
 
     #==================================================
     # ログ更新

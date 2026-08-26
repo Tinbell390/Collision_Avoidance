@@ -29,7 +29,7 @@ constexpr uint8_t SPEED_THRESHOLD_CM_S           = 5;     // 到着時間を計�
 // ============================================================
 constexpr float PID_KP_DEFAULT                   = 0.7F;   // 比例ゲインのデフォルト値
 constexpr float PID_KI_DEFAULT                   = 1.1F;   // 積分ゲインのデフォルト値
-constexpr float PID_KD_DEFAULT                   = 0.6F;   // 微分ゲインのデフォルト値
+constexpr float PID_KD_DEFAULT                   = 0.006F;   // 微分ゲインのデフォルト値
 constexpr float PID_MAX_INTEGRAL                 = 200.0F; // 積分項の最大値
 
 // ============================================================
