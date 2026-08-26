@@ -23,11 +23,15 @@ void setup(){
 void loop(){
     const uint32_t current_time_us =micros() - start_time_us;
 
-    // 交差点を通過してから一定時間経過したら停止
+    // 交差点を通過したあとの処理
     if(intersection_entry_time_us != INVALID_TIME_US && current_time_us - intersection_entry_time_us > INTERSECTION_HOLD_TIME_US && is_running){
-        brake_motor();
-        is_running=false;
+        // 交差点を通過してから一定時間経過したら停止
+        if(current_time_us - intersection_entry_time_us > INTERSECTION_HOLD_TIME_US){
+            brake_motor();
+            is_running=false;        
+        }
     }
+    // 走行処理
     else if(is_running&&current_time_us<RUN_TIME_LIMIT_US){
         //現在の予測到着時間の計算
         self_enter_time_us=predict_time_to_intersection_us();
