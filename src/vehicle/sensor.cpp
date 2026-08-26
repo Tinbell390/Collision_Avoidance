@@ -208,19 +208,10 @@ void IRAM_ATTR sensor_isr(void *arg)
 
         const uint32_t interval_us =
             current_time_us - last_time_us;
-
-        // デバウンス時間以内の入力は無視
-        if (interval_us > SENSOR_DEBOUNCE_US) {
-
             line_count++;
-
             push_sensor_interval_us(interval_us);
-
-            last_time_us =
-                current_time_us;
-
+            last_time_us = current_time_us;
             is_sensor_enabled = true;
-        }
     }
 }
 
