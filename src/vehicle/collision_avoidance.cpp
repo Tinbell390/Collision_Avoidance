@@ -8,22 +8,35 @@ constexpr int32_t MM_PER_CM = 10;
 //--------------------------------------------------
 // 衝突回避 / 意図的衝突の目標速度算出
 //
-// other_enter_remaining_us:
+// other_enter_time_us:
 //     相手が交差点へ突入するまでの残り時間 [us]
 //
-// other_exit_remaining_us:
+// other_exit_time_us:
 //     相手が交差点から離脱するまでの残り時間 [us]
-//
+// 
+// other_timestamp_us:
+//     相手のタイムスタンプ [us]
+// 
 // is_collision_detected == true:
 //     相手と同時に交差点へ突入する
 //
 // is_collision_detected == false:
 //     相手と交差点内で干渉しないようにする
 //--------------------------------------------------
-int32_t calculate_collision_avoidance_speed_cm_s(
-    uint32_t other_enter_remaining_us,
-    uint32_t other_exit_remaining_us)
+int32_t calculate_collision_avoidance_speed_cm_s()
 {
+
+    // 相手の情報が無効(未受信 or 使用済み)なら回避ロジックを走らせない
+    if (other_enter_time_us == INVALID_TIME_US ||
+        other_exit_time_us  == INVALID_TIME_US ||
+        other_timestamp_us  == INVALID_TIME_US) {
+        return current_speed_cm_s;   // あるいは MAX_SPEED_CM_S で通常走行に復帰
+    }
+
+    uint32_t now_us = micros();
+    uint32_t other_enter_remaining_us = other_enter_time_us + other_timestamp_us - (now_us - start_time_us);
+    uint32_t other_exit_remaining_us = other_exit_time_us + other_timestamp_us - (now_us - start_time_us);
+
     //--------------------------------------------------
     // 現在位置 [mm]
     //--------------------------------------------------
@@ -184,6 +197,7 @@ int32_t calculate_collision_avoidance_speed_cm_s(
     //--------------------------------------------------
     other_enter_time_us = INVALID_TIME_US;
     other_exit_time_us = INVALID_TIME_US;
+    other_timestamp_us = INVALID_TIME_US;
 
     return target_speed_cm_s;
 }

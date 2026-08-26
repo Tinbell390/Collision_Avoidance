@@ -40,7 +40,7 @@ class SerialManager:
         # GUIへ渡すメッセージ
         self.message_queue = queue.Queue()
 
-        # GUIへ渡すプロット用データ（車両ごとの (Time_us, Time_us+EnterTime_us) データ）
+        # GUIへ渡すプロット用データ（車両ごとの (Time_us, Time_us+EnterTime_us, Target_speed_cm_s) データ）
         self.plot_queue = queue.Queue()
 
         # CSV受信
@@ -53,7 +53,7 @@ class SerialManager:
         self.received_count = 0
 
         # 今回のセッションで受信した各車両のプロット用データ
-        # { vehicle_id: [(Time_us, Time_us+EnterTime_us), ...], ... }
+        # { vehicle_id: [(Time_us, Time_us+EnterTime_us, Target_speed_cm_s), ...], ... }
         self.vehicle_data = {}
 
 
@@ -328,8 +328,9 @@ class SerialManager:
 
     # -------------------------------------------------
     # CSVバッファをパースしてプロット用データに変換
-    #   横軸 : Time_us
-    #   縦軸 : Time_us + EnterTime_us
+    #   Time_us
+    #   Time_us + EnterTime_us
+    #   Target_speed_cm_s （列が無ければ None）
     # -------------------------------------------------
     def parse_and_store(self, vehicle):
 
@@ -347,13 +348,24 @@ class SerialManager:
             self.vehicle_data[vehicle] = []
             return
 
+        # Target_speed_cm_s は無い場合もあるため任意扱い
+        try:
+            speed_idx = header.index("Target_speed_cm_s")
+        except ValueError:
+            speed_idx = None
+            self.log("Target_speed_cm_s column not found (speed plot will be skipped)")
+
         data = []
 
         for line in self.csv_buffer[1:]:
 
             parts = line.split(",")
 
-            if len(parts) <= max(time_idx, enter_idx):
+            required_max = max(time_idx, enter_idx)
+            if speed_idx is not None:
+                required_max = max(required_max, speed_idx)
+
+            if len(parts) <= required_max:
                 continue
 
             try:
@@ -362,7 +374,14 @@ class SerialManager:
             except ValueError:
                 continue
 
-            data.append((t, t + enter))
+            speed = None
+            if speed_idx is not None:
+                try:
+                    speed = float(parts[speed_idx])
+                except ValueError:
+                    speed = None
+
+            data.append((t, t + enter, speed))
 
         self.vehicle_data[vehicle] = data
 
@@ -631,12 +650,22 @@ class MonitorGUI:
         if not vehicle_data:
             return
 
+        self.show_enter_time_plot(vehicle_data)
+        self.show_target_speed_plot(vehicle_data)
+
+    #==================================================
+    # Time_us vs Time_us + EnterTime_us （2車両分を1グラフに）
+    #==================================================
+    def show_enter_time_plot(self, vehicle_data):
+
         win = tk.Toplevel(self.root)
         win.title("Vehicle Time Plot")
         win.geometry("800x600")
 
         fig = Figure(figsize=(8, 6), dpi=100)
         ax = fig.add_subplot(111)
+
+        plotted = False
 
         for vehicle in sorted(vehicle_data.keys()):
 
@@ -657,10 +686,77 @@ class MonitorGUI:
                 label=f"Vehicle {vehicle}"
             )
 
+            plotted = True
+
         ax.set_xlabel("Time_us")
         ax.set_ylabel("Time_us + EnterTime_us")
         ax.set_title("Vehicle Time_us vs Time_us + EnterTime_us")
-        ax.legend()
+
+        if plotted:
+            ax.legend()
+
+        ax.grid(True)
+
+        canvas = FigureCanvasTkAgg(fig, master=win)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill="both", expand=True)
+
+        toolbar_frame = ttk.Frame(win)
+        toolbar_frame.pack(fill="x")
+
+        try:
+            from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
+            toolbar = NavigationToolbar2Tk(canvas, toolbar_frame)
+            toolbar.update()
+        except Exception:
+            pass
+
+    #==================================================
+    # Time_us vs Target_speed_cm_s （2車両分を1グラフに）
+    #==================================================
+    def show_target_speed_plot(self, vehicle_data):
+
+        win = tk.Toplevel(self.root)
+        win.title("Vehicle Target Speed Plot")
+        win.geometry("800x600")
+
+        fig = Figure(figsize=(8, 6), dpi=100)
+        ax = fig.add_subplot(111)
+
+        plotted = False
+
+        for vehicle in sorted(vehicle_data.keys()):
+
+            data = vehicle_data[vehicle]
+
+            if not data:
+                continue
+
+            # speed が None の行は除外
+            xs = [d[0] for d in data if d[2] is not None]
+            ys = [d[2] for d in data if d[2] is not None]
+
+            if not xs:
+                continue
+
+            ax.plot(
+                xs,
+                ys,
+                marker="o",
+                markersize=2,
+                linewidth=1,
+                label=f"Vehicle {vehicle}"
+            )
+
+            plotted = True
+
+        ax.set_xlabel("Time_us")
+        ax.set_ylabel("Target_speed_cm_s")
+        ax.set_title("Vehicle Time_us vs Target_speed_cm_s")
+
+        if plotted:
+            ax.legend()
+
         ax.grid(True)
 
         canvas = FigureCanvasTkAgg(fig, master=win)

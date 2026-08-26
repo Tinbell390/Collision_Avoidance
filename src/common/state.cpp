@@ -17,6 +17,7 @@ volatile uint32_t self_enter_time_us;
 volatile uint32_t self_exit_time_us;
 volatile uint32_t other_enter_time_us = INVALID_TIME_US;
 volatile uint32_t other_exit_time_us = INVALID_TIME_US;
+volatile uint32_t other_timestamp_us = INVALID_TIME_US;
 
 volatile bool is_running = false;
 volatile bool is_collision_detected = false;

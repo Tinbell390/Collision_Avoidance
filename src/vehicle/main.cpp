@@ -31,7 +31,7 @@ void loop(){
         self_enter_time_us=predict_time_to_intersection_us();
         self_exit_time_us=predict_time_to_exit_intersection_us();    
         if(other_enter_time_us != INVALID_TIME_US && other_exit_time_us != INVALID_TIME_US){
-            target_speed_cm_s = calculate_collision_avoidance_speed_cm_s(other_enter_time_us,other_exit_time_us);
+            target_speed_cm_s = calculate_collision_avoidance_speed_cm_s();
         }
 
         // 交差点を通過したら停止

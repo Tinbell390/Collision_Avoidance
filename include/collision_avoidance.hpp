@@ -3,6 +3,6 @@
 
 #include "config.hpp"
 
-int32_t calculate_collision_avoidance_speed_cm_s( uint32_t other_enter_time_us, uint32_t other_exit_time_us);
+int32_t calculate_collision_avoidance_speed_cm_s();
 
 #endif // COLLISION_AVOIDANCE_H

@@ -39,6 +39,7 @@ void handle_status_packet(const uint8_t *mac_addr, const StatusData payload){
     }
     other_enter_time_us = payload.time_to_enter_intersection_us;
     other_exit_time_us = payload.time_to_exit_intersection_us;
+    other_timestamp_us = payload.timestamp_us;
     return;
 }
 

@@ -22,6 +22,7 @@ extern volatile uint32_t self_exit_time_us;                  // 自分の交差�
 
 extern volatile uint32_t other_enter_time_us;                 // 他の車両の交差点に入る時間（マイクロ秒）
 extern volatile uint32_t other_exit_time_us;                  // 他の車両の交差点を出る時間（マイクロ秒）
+extern volatile uint32_t other_timestamp_us;                  // 他の車両のタイムスタンプ（マイクロ秒）
 
 extern volatile bool is_running;                        // ビークルが走行中かどうかのフラグ
 extern volatile bool is_collision_detected;             // 衝突が検出されたかどうかのフラグ
