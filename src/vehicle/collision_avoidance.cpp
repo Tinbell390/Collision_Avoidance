@@ -134,7 +134,7 @@ int32_t calculate_collision_avoidance_speed_cm_s(uint32_t current_time_us){
         desired_enter_remaining_us =
             static_cast<int64_t>(other_enter_remaining_us)
             - static_cast<int64_t>(my_intersection_time_us)
-            - static_cast<int64_t>(TIME_MARGIN_US);
+            - static_cast<int64_t>(TIME_MARGIN_US/2);
     }
 
     //--------------------------------------------------
@@ -150,7 +150,7 @@ int32_t calculate_collision_avoidance_speed_cm_s(uint32_t current_time_us){
     else {
         desired_enter_remaining_us =
             static_cast<int64_t>(other_exit_remaining_us)
-            + static_cast<int64_t>(TIME_MARGIN_US);
+            + static_cast<int64_t>(TIME_MARGIN_US/2);
     }
 
     //--------------------------------------------------
