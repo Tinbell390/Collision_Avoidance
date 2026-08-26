@@ -61,12 +61,10 @@ void handle_status_packet(const uint8_t *mac_addr, const StatusData payload){
 
     Serial.println("----------------------------------------");
     Serial.printf("Vehicle     : %d\n", index);
-    Serial.printf("MAC Address : %02X:%02X:%02X:%02X:%02X:%02X\n",
-                  mac_addr[0], mac_addr[1], mac_addr[2],
-                  mac_addr[3], mac_addr[4], mac_addr[5]);
-
-    Serial.printf("Time  : %lu\n", payload.timestamp_us);
+    Serial.printf("MAC Address : %02X:%02X:%02X:%02X:%02X:%02X\n", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+    Serial.printf("TimeStamp  : %lu\n", payload.timestamp_us);
     Serial.printf("Speed : %d\n", payload.speed_cm_s);
+    Serial.printf("TargetSpeed : %d\n", payload.target_speed_cm_s);
     Serial.printf("PWM   : %d\n", payload.pwm);
     Serial.println("----------------------------------------");
 

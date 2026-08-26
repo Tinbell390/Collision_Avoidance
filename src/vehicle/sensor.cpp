@@ -5,7 +5,7 @@
 #include "sensor.hpp"
 uint32_t interval_ring_buffer_us[FILTER_WINDOW_SIZE];    // センサデータを格納するリングバッファ
 
-bool is_sensor_enabled = false;                         // センサの立ち上がり立ち下がりを判別するフラグ
+ volatile bool is_sensor_enabled = false;                         // センサの立ち上がり立ち下がりを判別するフラグ
 
 int32_t interval_ring_buffer_head = 0;                  // リングバッファの次の書き込み場所
 int32_t interval_ring_buffer_count = 0;                 // リングバッファに格納されたデータの数

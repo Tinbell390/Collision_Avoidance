@@ -10,12 +10,13 @@
 // STARTパケット受信処理関数
 //--------------------------------------------------
 void handle_start_packet(bool collision,bool lonery){
+    // 制御データの初期化
     start_time_us=micros();
     last_time_us=start_time_us;
     is_running = true;
     is_collision_detected = collision;
     is_lonely = lonery;
-    target_speed_cm_s=first_target_speed_cm_s;
+    target_speed_cm_s=default_target_speed_cm_s;
     line_count=0;
     other_enter_time_us=INVALID_TIME_US;
     other_exit_time_us=INVALID_TIME_US;
@@ -41,7 +42,11 @@ void handle_finish_packet(){
 // STATUSパケット受信処理関数
 //--------------------------------------------------
 void handle_status_packet(const uint8_t *mac_addr, const StatusData payload){
-
+    // 独立制御モードなら無視
+    if(is_lonely){
+        return ;
+    }
+    // 相手の情報が無効なら無視
     if (payload.time_to_enter_intersection_us == INVALID_TIME_US || payload.time_to_exit_intersection_us  == INVALID_TIME_US || is_lonely){
         return;
     }
@@ -56,7 +61,7 @@ void handle_status_packet(const uint8_t *mac_addr, const StatusData payload){
 //--------------------------------------------------
 void handle_set_speed_packet(int speed){
     target_speed_cm_s=speed;
-    first_target_speed_cm_s = speed;
+    default_target_speed_cm_s = speed;
     return;
 }
 

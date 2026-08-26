@@ -17,8 +17,7 @@ constexpr uint32_t LOG_TRANSFER_TIMEOUT_MS = 5000;
 // フラッシュメモリクリア
 //--------------------------------------------------
 
-void clear_flash()
-{
+void clear_flash(){
     if (!LittleFS.begin()) {
         return;
     }
@@ -41,8 +40,7 @@ void clear_flash()
 // Logger setup
 //--------------------------------------------------
 
-void setup_logger()
-{
+void setup_logger(){
     if (!LittleFS.begin(true)) {
         Serial.println("LittleFS mount failed");
         return;
@@ -55,36 +53,18 @@ void setup_logger()
 // ログファイルを開く
 //--------------------------------------------------
 
-void open_log_file()
-{
-    for (int32_t vehicle_index = 0;
-         vehicle_index < VEHICLE_COUNT;
-         ++vehicle_index) {
-
+void open_log_file(){
+    for (int32_t vehicle_index = 0; vehicle_index < VEHICLE_COUNT; ++vehicle_index) {
         has_log_data[vehicle_index] = false;
-
-        const String filename =
-            "/log" + String(vehicle_index) + ".csv";
-
-        log_files[vehicle_index] =
-            LittleFS.open(filename, FILE_WRITE);
+        const String filename ="/log" + String(vehicle_index) + ".csv";
+        log_files[vehicle_index] = LittleFS.open(filename, FILE_WRITE);
 
         if (!log_files[vehicle_index]) {
-            Serial.printf(
-                "Failed to open %s\n",
-                filename.c_str()
-            );
+            Serial.printf("Failed to open %s\n",filename.c_str());
             continue;
         }
-
-        Serial.printf(
-            "%s opened\n",
-            filename.c_str()
-        );
-
-        log_files[vehicle_index].println(
-            "Time_us,Speed_cm_s,Target_speed_cm_s,PWM,Line_count,EnterTime_us,ExitTime_us"
-        );
+        Serial.printf( "%s opened\n", filename.c_str());
+        log_files[vehicle_index].println( "Time_us,Speed_cm_s,Target_speed_cm_s,PWM,Line_count,EnterTime_us,ExitTime_us");
     }
 }
 
@@ -92,11 +72,7 @@ void open_log_file()
 // ログ書き込み
 //--------------------------------------------------
 
-void write_log(
-    int32_t vehicle_index,
-    const StatusData& data
-)
-{
+void write_log( int32_t vehicle_index, const StatusData& data){
     if (vehicle_index < 0 ||
         vehicle_index >= VEHICLE_COUNT) {
         return;
@@ -140,8 +116,7 @@ void write_log(
 // ログファイルを閉じる
 //--------------------------------------------------
 
-void close_log_file()
-{
+void close_log_file(){
     for (int32_t vehicle_index = 0;
          vehicle_index < VEHICLE_COUNT;
          ++vehicle_index) {
@@ -158,52 +133,35 @@ void close_log_file()
 // ログ転送
 //--------------------------------------------------
 
-void send_log()
-{
+void send_log(){
     is_logging = true;
 
     int32_t log_count = 0;
 
-    for (int32_t vehicle_index = 0;
-         vehicle_index < VEHICLE_COUNT;
-         ++vehicle_index) {
-
+    for (int32_t vehicle_index = 0; vehicle_index < VEHICLE_COUNT; ++vehicle_index) {
         if (has_log_data[vehicle_index]) {
             ++log_count;
         }
     }
 
-    Serial.printf(
-        "COUNT %ld\n",
-        log_count
-    );
+    Serial.printf( "COUNT %ld\n",log_count);
 
-    for (int32_t vehicle_index = 0;
-         vehicle_index < VEHICLE_COUNT;
-         ++vehicle_index) {
+    for (int32_t vehicle_index = 0; vehicle_index < VEHICLE_COUNT; ++vehicle_index) {
 
         if (!has_log_data[vehicle_index]) {
             continue;
         }
 
-        const String filename =
-            "/log" + String(vehicle_index) + ".csv";
+        const String filename = "/log" + String(vehicle_index) + ".csv";
 
-        File log_file =
-            LittleFS.open(filename, FILE_READ);
+        File log_file = LittleFS.open(filename, FILE_READ);
 
         if (!log_file) {
-            Serial.printf(
-                "Cannot open %s\n",
-                filename.c_str()
-            );
+            Serial.printf("Cannot open %s\n",filename.c_str());
             continue;
         }
 
-        Serial.printf(
-            "BEGIN %ld\n",
-            vehicle_index
-        );
+        Serial.printf("BEGIN %ld\n",vehicle_index);
 
         while (log_file.available()) {
             Serial.write(log_file.read());
@@ -211,10 +169,7 @@ void send_log()
 
         Serial.println();
 
-        Serial.printf(
-            "END %ld\n",
-            vehicle_index
-        );
+        Serial.printf( "END %ld\n", vehicle_index);
 
         log_file.close();
     }
@@ -222,9 +177,7 @@ void send_log()
     // PythonからACKを待つ
     const uint32_t start_time_ms = millis();
 
-    while (millis() - start_time_ms <
-           LOG_TRANSFER_TIMEOUT_MS) {
-
+    while (millis() - start_time_ms < LOG_TRANSFER_TIMEOUT_MS) {
         if (!Serial.available()) {
             continue;
         }
@@ -238,16 +191,12 @@ void send_log()
             continue;
         }
 
-        for (int32_t vehicle_index = 0;
-             vehicle_index < VEHICLE_COUNT;
-             ++vehicle_index) {
-
+        for (int32_t vehicle_index = 0; vehicle_index < VEHICLE_COUNT; ++vehicle_index) {
             if (!has_log_data[vehicle_index]) {
                 continue;
             }
 
-            const String filename =
-                "/log" + String(vehicle_index) + ".csv";
+            const String filename ="/log" + String(vehicle_index) + ".csv";
 
             LittleFS.remove(filename);
         }

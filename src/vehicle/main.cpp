@@ -18,10 +18,10 @@ void setup(){
     setup_sensor();
 }
 
-// 内部条件による停止判定。
+// 内部条件による停止判定
 // is_running は開始指令/強制停止指令によって外部(espnowコールバック等)からも
-// 書き換えられるため、ここでは「false にする」ことだけ行い、
-// モーター停止処理自体は loop() 側で一括して行う。
+// 書き換えられるため、ここでは「false にする」ことだけ行い
+// モーター停止処理自体は loop() 側で一括して行う
 void check_internal_stop_conditions(uint32_t current_time_us){
     // センサーが一定時間更新されていなければ停止(交差点通過後の待機中も対象)
     const uint32_t current_interval_us = micros() - last_time_us;

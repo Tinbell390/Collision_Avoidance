@@ -27,7 +27,7 @@ extern volatile uint32_t intersection_entry_time_us;          // 交差点に入
 
 extern volatile int32_t current_speed_cm_s;             // 現在の速度（センチメートル毎秒）
 extern volatile int32_t target_speed_cm_s;              // 目標速度（センチメートル毎秒）
-extern volatile int32_t first_target_speed_cm_s;        // 最初の目標速度（センチメートル毎秒）
+extern volatile int32_t default_target_speed_cm_s;        // 最初の目標速度（センチメートル毎秒）
 
 extern volatile uint32_t self_enter_time_us;                 // 自分の交差点に入る時間（マイクロ秒）
 extern volatile uint32_t self_exit_time_us;                  // 自分の交差点を出る時間（マイクロ秒）
@@ -37,8 +37,8 @@ extern volatile uint32_t other_exit_time_us;                  // 他の車両の
 extern volatile uint32_t other_timestamp_us;                  // 他の車両のタイムスタンプ（マイクロ秒）
 
 extern volatile bool is_running;                        // ビークルが走行中かどうかのフラグ
-extern volatile bool is_collision_detected;             // 衝突が検出されたかどうかのフラグ
-extern volatile bool is_lonely;                         // ビークルが孤独かどうかのフラグ
+extern volatile bool is_collision_detected;             // ビークルが意図的衝突モードかどうかのフラグ
+extern volatile bool is_lonely;                         // ビークルが独立制御モードかどうかのフラグ
 extern volatile bool is_logging;                        // ログを記録中かどうかのフラグ
 
 extern float pid_kp;                                    // PID制御の比例ゲイン
