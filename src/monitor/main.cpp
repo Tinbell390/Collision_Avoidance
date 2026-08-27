@@ -56,13 +56,13 @@ void loop(){
         }
     }
     else if (cmd == "finish"){
+        Serial.println("Send FINISH");
+        Serial.println("Send FINISH");
+        Serial.println("Send FINISH");
         send_finish();
         close_log_file();
         send_log();
         // 走行中はセンサ割り込みによって受信コールバックが破棄される恐れがあるため3回送信する
-        Serial.println("Send FINISH");
-        Serial.println("Send FINISH");
-        Serial.println("Send FINISH");
     }
     else{
         Serial.println("Unknown command");
