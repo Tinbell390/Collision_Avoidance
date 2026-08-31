@@ -18,12 +18,14 @@
 Linux
 
 ```bash
+sudo chmod +x setup.sh 
 ./setup.sh
-
+source .venv/bin/activate
 ```
 Windows
 
 ```bash
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\setup.ps1
+.\.venv\Scripts\Activate.ps1
 ```
