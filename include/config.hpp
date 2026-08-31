@@ -9,7 +9,7 @@
 // 車両パラメータ (Vehicle)
 // ============================================================
 constexpr int32_t LINE_PITCH_MM                  = 10;    // ラインのピッチ（ミリメートル）
-constexpr int32_t VEHICLE_LENGTH_MM              = 150;   // 車両の長さ（ミリメートル）
+constexpr int32_t VEHICLE_LENGTH_MM              = 160;   // 車両の長さ（ミリメートル）
 constexpr uint8_t VEHICLE_COUNT                  = 2;     // ビークルの台数
 
 // 交差点関連の距離
@@ -27,10 +27,10 @@ constexpr uint8_t SPEED_THRESHOLD_CM_S           = 5;     // 到着時間を計�
 // ============================================================
 // PID制御 (PID Control)
 // ============================================================
-constexpr float PID_KP_DEFAULT                   = 0.7F;   // 比例ゲインのデフォルト値
-constexpr float PID_KI_DEFAULT                   = 1.1F;   // 積分ゲインのデフォルト値
-constexpr float PID_KD_DEFAULT                   = 0.006F;   // 微分ゲインのデフォルト値
-constexpr float PID_MAX_INTEGRAL                 = 200.0F; // 積分項の最大値
+constexpr float PID_KP_DEFAULT                   = 2.0F;   // 比例ゲインのデフォルト値
+constexpr float PID_KI_DEFAULT                   = 0.0004F;   // 積分ゲインのデフォルト値
+constexpr float PID_KD_DEFAULT                   = 1.0F;   // 微分ゲインのデフォルト値
+constexpr float PID_MAX_INTEGRAL                 = 100000.0F; // 積分項の最大値
 
 // ============================================================
 // 制御ループ (Control Loop)
@@ -40,7 +40,7 @@ constexpr uint32_t CONTROL_INTERVAL_MS           = 10;     // 制御ループの
 // ============================================================
 // フィルタ (Filters)
 // ============================================================
-constexpr uint8_t FILTER_WINDOW_SIZE      = 10;     // フィルタのウィンドウサイズ
+constexpr uint8_t FILTER_WINDOW_SIZE             = 10;     // フィルタのウィンドウサイズ
 
 
 // ============================================================
