@@ -105,6 +105,7 @@ void add_peer(const uint8_t *mac_addr){
 
     esp_now_peer_info_t peer_info = {};
 
+    // peer_info.peer_addrにmac_addrを格納
     ①;
 
     peer_info.channel = 0;
@@ -129,6 +130,7 @@ void send_hello(){
     packet.header.type = PacketType::HELLO;
 
     Serial.println();
+    // packetを送信
     if(esp_now_send(broadcast_address, ②, sizeof(packet)) == ESP_OK){
         Serial.println("Send : HELLO");
     }
@@ -288,6 +290,7 @@ void on_data_recv(const uint8_t *mac_addr,const uint8_t *data,int len){
     // まずヘッダだけを見て種別を判定する
     const PacketHeader *header = (const PacketHeader *)data;
 
+    // 受信したパケットのヘッダから処理を分岐する
     switch(③){
         case PacketType::HELLO:{
             if (len != sizeof(Packet)){
@@ -372,6 +375,7 @@ void on_data_recv(const uint8_t *mac_addr,const uint8_t *data,int len){
             Serial.print("Recv : DATA from ");
             print_mac_address(mac_addr);
 
+            // 受信したパケットをDataPacketとして読み取る
             DataPacket *recv_packet = ④;
 
             Serial.println("DATA:");
@@ -485,25 +489,25 @@ void loop(){
 }
 
 //穴埋め問題
-// ①
+// ① 
 // 1. memcpy(peer_info.peer_addr, mac_addr, 6)
 // 2. peer_info.peer_addr = mac_addr
 // 3. strcpy(peer_info.peer_addr, mac_addr)
 // 4. *peer_info.peer_addr = *mac_addr
 //
-// ②
+// ② 
 // 1. (uint8_t *)&packet
 // 2. packet
 // 3. &packet
 // 4. (uint8_t *)packet
 //
-// ③
+// ③ 
 // 1. header.type
 // 2. data.type
 // 3. header->type
 // 4. len
 //
-// ④
+// ④ 
 // 1. (DataPacket *)data
 // 2. (Packet *)data
 // 3. data
