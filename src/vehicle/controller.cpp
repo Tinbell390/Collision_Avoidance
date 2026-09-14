@@ -3,8 +3,6 @@
 float pid_integral=0.0F;                    //累積偏差
 float pid_previous_error=0.0F;              //前回の偏差
 
-uint8_t previous_pwm = 0; // 前回のPWM値
-
 // 課題としてコントローラを設計させる
 
 //--------------------------------------------------
