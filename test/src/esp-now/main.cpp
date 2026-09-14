@@ -130,7 +130,6 @@ void send_hello(){
     packet.header.type = PacketType::HELLO;
 
     Serial.println();
-    // packetを送信
     if(esp_now_send(broadcast_address, ②, sizeof(packet)) == ESP_OK){
         Serial.println("Send : HELLO");
     }
@@ -269,7 +268,7 @@ void send_data(const uint8_t *mac_addr){
     Serial.print(" exitTime  : ");
     Serial.println(packet.payload.time_to_exit_intersection_us);
 
-    if (esp_now_send(mac_addr,②,sizeof(packet)) == ESP_OK){
+    if (esp_now_send(mac_addr, ②, sizeof(packet)) == ESP_OK){
         Serial.println("DATA Send OK");
     }
     else{
@@ -288,7 +287,7 @@ void on_data_recv(const uint8_t *mac_addr,const uint8_t *data,int len){
     }
 
     // まずヘッダだけを見て種別を判定する
-    const PacketHeader *header = (const PacketHeader *)data;
+    const PacketHeader *header = reinterpret_cast<const PacketHeader *>(data);
 
     // 受信したパケットのヘッダから処理を分岐する
     switch(③){
@@ -376,7 +375,7 @@ void on_data_recv(const uint8_t *mac_addr,const uint8_t *data,int len){
             print_mac_address(mac_addr);
 
             // 受信したパケットをDataPacketとして読み取る
-            DataPacket *recv_packet = ④;
+            const DataPacket *recv_packet = ④;
 
             Serial.println("DATA:");
 
@@ -489,26 +488,41 @@ void loop(){
 }
 
 //穴埋め問題
-// ① 
+// ①  Peer登録・MACアドレスの扱い
+// ESP-NOWで通信する相手をPeerとして登録するために、相手のMACアドレスを peer_info に設定すること。
+// MACアドレスは6バイトのデータとして扱われることを踏まえ、配列に格納されたデータをコピーする方法を考えること。
+// 
 // 1. memcpy(peer_info.peer_addr, mac_addr, 6)
 // 2. peer_info.peer_addr = mac_addr
 // 3. strcpy(peer_info.peer_addr, mac_addr)
 // 4. *peer_info.peer_addr = *mac_addr
 //
-// ② 
-// 1. (uint8_t *)&packet
-// 2. packet
+// 
+// ②  ESP-NOWでのデータ送信
+// esp_now_send関数を使ってデータを送信する際、送信データがメモリ上のバイト列として扱われることを確認すること。
+// Packet 型の構造体をesp_now_send関数に渡すために、適切な型変換を行うこと。
+// 
+// 1. reinterpret_cast<uint8_t *>(&packet)
+// 2. static_cast<uint8_t *>(&packet)
 // 3. &packet
-// 4. (uint8_t *)packet
+// 4. packet
 //
-// ③ 
+// 
+// ③  ドット演算子とアロー演算子
+// header が PacketHeader 型へのポインタであることを確認すること。
+// 構造体そのものと構造体へのポインタで、メンバにアクセスする演算子が異なることを踏まえ、header の type にアクセスする方法を選択すること。
+// 
 // 1. header.type
 // 2. data.type
 // 3. header->type
 // 4. len
 //
-// ④ 
-// 1. (DataPacket *)data
-// 2. (Packet *)data
-// 3. data
-// 4. (StatusData *)data
+// 
+// ④  受信データの解釈
+// ESP-NOWで受信したデータが uint8_t のバイト列として渡されることを確認すること。
+// 受信したバイト列を DataPacket型のデータとして読み取るために、適切な型変換を行うこと。
+// 
+// 1. reinterpret_cast<const DataPacket *>(data)
+// 2. reinterpret_cast<const Packet *>(data)
+// 3. static_cast<const DataPacket *>(data)
+// 4. data

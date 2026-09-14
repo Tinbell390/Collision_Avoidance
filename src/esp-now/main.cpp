@@ -105,6 +105,8 @@ void add_peer(const uint8_t *mac_addr){
 
     esp_now_peer_info_t peer_info = {};
 
+    // peer_info.peer_addr は uint8_t[6] の配列なので代入演算子は使えず、
+    // C++キャストでも表現できないバイトコピーは memcpy を用いる
     memcpy(peer_info.peer_addr, mac_addr, 6);
 
     peer_info.channel = 0;
@@ -129,7 +131,8 @@ void send_hello(){
     packet.header.type = PacketType::HELLO;
 
     Serial.println();
-    if(esp_now_send(broadcast_address, (uint8_t *)&packet, sizeof(packet)) == ESP_OK){
+    // Packet* -> uint8_t* は無関係な型同士の再解釈なので reinterpret_cast
+    if(esp_now_send(broadcast_address, reinterpret_cast<uint8_t *>(&packet), sizeof(packet)) == ESP_OK){
         Serial.println("Send : HELLO");
     }
     else{
@@ -161,7 +164,7 @@ void send_ping(const uint8_t *mac_addr){
     Serial.print("Send : PING -> ");
     print_mac_address(mac_addr);
 
-    if(esp_now_send(mac_addr, (uint8_t *)&packet, sizeof(packet)) == ESP_OK){
+    if(esp_now_send(mac_addr, reinterpret_cast<uint8_t *>(&packet), sizeof(packet)) == ESP_OK){
         Serial.println("PING Send OK");
     }
     else{
@@ -181,7 +184,7 @@ void send_pong(const uint8_t *mac_addr){
     Serial.print("Send : PONG -> ");
     print_mac_address(mac_addr);
 
-    if(esp_now_send(mac_addr, (uint8_t *)&packet, sizeof(packet)) == ESP_OK){
+    if(esp_now_send(mac_addr, reinterpret_cast<uint8_t *>(&packet), sizeof(packet)) == ESP_OK){
         Serial.println("PONG Send OK");
     }
     else{
@@ -203,7 +206,7 @@ void send_data_request(const uint8_t *mac_addr){
     Serial.print("Send : DATA_REQ -> ");
     print_mac_address(mac_addr);
 
-    if(esp_now_send(mac_addr, (uint8_t *)&packet, sizeof(packet)) == ESP_OK){
+    if(esp_now_send(mac_addr, reinterpret_cast<uint8_t *>(&packet), sizeof(packet)) == ESP_OK){
         Serial.println("DATA_REQ Send OK");
     }
     else{
@@ -267,7 +270,7 @@ void send_data(const uint8_t *mac_addr){
     Serial.print(" exitTime  : ");
     Serial.println(packet.payload.time_to_exit_intersection_us);
 
-    if (esp_now_send(mac_addr,(uint8_t *)&packet,sizeof(packet)) == ESP_OK){
+    if (esp_now_send(mac_addr, reinterpret_cast<uint8_t *>(&packet), sizeof(packet)) == ESP_OK){
         Serial.println("DATA Send OK");
     }
     else{
@@ -286,8 +289,10 @@ void on_data_recv(const uint8_t *mac_addr,const uint8_t *data,int len){
     }
 
     // まずヘッダだけを見て種別を判定する
-    const PacketHeader *header = (const PacketHeader *)data;
+    // const uint8_t* -> const PacketHeader* は無関係な型同士の再解釈なので reinterpret_cast
+    const PacketHeader *header = reinterpret_cast<const PacketHeader *>(data);
 
+    // 受信したパケットのヘッダから処理を分岐する
     switch(header->type){
         case PacketType::HELLO:{
             if (len != sizeof(Packet)){
@@ -372,9 +377,10 @@ void on_data_recv(const uint8_t *mac_addr,const uint8_t *data,int len){
             Serial.print("Recv : DATA from ");
             print_mac_address(mac_addr);
 
-            //ダミーデータ表示 (dataをDataPacketでキャスト)
-
-            const DataPacket *recv_packet = (const DataPacket *)data;
+            // 受信したパケットをDataPacketとして読み取る
+            // data は const uint8_t* なので、const性を保ったまま
+            // const DataPacket* へ再解釈する（読み取り専用なので non-const にはしない）
+            const DataPacket *recv_packet = reinterpret_cast<const DataPacket *>(data);
 
             Serial.println("DATA:");
 
