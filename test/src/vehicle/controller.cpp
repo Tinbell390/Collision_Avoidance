@@ -34,7 +34,6 @@ void reset_controller(){
 // PIDcontrollerを設計せよ
 //
 // 各ゲインはKP，KI，KDで定義される。
-// 1フレームの時間はCONTROL_INTERVAL_MS[ms]で定義されている。
 // 
 // current_speed_cm_s, target_speed_cm_sは[cm/s]であることに注意すること。
 //
