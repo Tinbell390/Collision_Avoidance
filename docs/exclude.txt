@@ -1,0 +1,25 @@
+# Git
+.git
+.gitignore
+
+# PlatformIO
+.pio/
+
+# Python
+__pycache__/
+*.pyc
+.venv
+evaluate_crossing.py
+
+# pdf
+*.pdf
+
+lib/
+
+# 
+log/
+lesson/
+
+# IDE
+.vscode/
+.idea/
