@@ -9,6 +9,8 @@ exp3_monitor.py
 import queue
 import serial
 import os
+import sys
+import subprocess
 import serial.tools.list_ports
 
 import threading
@@ -22,6 +24,19 @@ import matplotlib
 matplotlib.use("TkAgg")
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+
+# =====================================================
+# ディレクトリ構成
+#   monitor/  ... 本スクリプト（車両制御・ログ受信）
+#   log/      ... 受信した走行ログ(CSV)の保存先
+#   tool/     ... 解析プログラム(exp3_analysis.py)
+# 本スクリプトの置き場所(monitor/)からの相対パスで解決する。
+# =====================================================
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+LOG_DIR = os.path.normpath(os.path.join(_SCRIPT_DIR, "..", "log"))
+ANALYZE_SCRIPT = os.path.normpath(
+    os.path.join(_SCRIPT_DIR, "..", "tool", "exp3_analysis.py"))
 
 
 # =====================================================
@@ -51,6 +66,12 @@ class SerialManager:
         # 転送予定ファイル数の管理
         self.expected_count = None
         self.received_count = 0
+
+        # 今回のセッションで保存したログファイルのパス { vehicle_id: filepath }
+        # vehicle0/vehicle1 のファイル名の時間部分を揃えるため，セッション開始時
+        # (COUNT受信時)に1つだけ発行したタイムスタンプを両車で共有して使う。
+        self.session_timestamp = None
+        self.saved_files = {}
 
         # 今回のセッションで受信した各車両のプロット用データ
         # { vehicle_id: [(Time_us, Time_us+EnterTime_us, Target_speed_cm_s), ...], ... }
@@ -225,6 +246,11 @@ class SerialManager:
                     # 新しいセッション開始のため、前回分のプロットデータをクリア
                     self.vehicle_data = {}
 
+                    # vehicle0/vehicle1 で同じ時間部分のファイル名になるよう，
+                    # セッション開始時に1回だけタイムスタンプを発行して共有する
+                    self.session_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    self.saved_files = {}
+
                     self.log(f"Expecting {self.expected_count} log file(s)")
 
                     continue
@@ -271,6 +297,10 @@ class SerialManager:
 
                         self.plot_queue.put(dict(self.vehicle_data))
 
+                        # 両車のログが揃っていれば，走行データ解析プログラムを
+                        # バックグラウンドで自動実行する
+                        self.run_analysis()
+
                         self.expected_count = None
                         self.received_count = 0
 
@@ -304,13 +334,16 @@ class SerialManager:
     # -------------------------------------------------
     def save_csv(self, vehicle):
 
-        os.makedirs("log", exist_ok=True)
+        os.makedirs(LOG_DIR, exist_ok=True)
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # セッション開始時(COUNT受信時)に発行したタイムスタンプを使う。
+        # 万一未設定であればここで発行する（単体でBEGIN/ENDのみ来た場合の保険）。
+        if self.session_timestamp is None:
+            self.session_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         filename = os.path.join(
-            "log",
-            f"{timestamp}_vehicle{vehicle}.csv"
+            LOG_DIR,
+            f"{self.session_timestamp}_vehicle{vehicle}.csv"
         )
 
         try:
@@ -319,6 +352,8 @@ class SerialManager:
 
                 for line in self.csv_buffer:
                     f.write(line + "\n")
+
+            self.saved_files[vehicle] = filename
 
             self.log(f"Saved : {filename}")
 
@@ -384,6 +419,49 @@ class SerialManager:
             data.append((t, t + enter, speed))
 
         self.vehicle_data[vehicle] = data
+
+    # -------------------------------------------------
+    # 走行データ解析プログラム(tool/exp3_analysis.py)の自動実行
+    #   vehicle0 / vehicle1 両方のログが揃っている場合のみ実行する。
+    #   解析処理（matplotlibでの画像生成等）は時間がかかる可能性があるため，
+    #   受信スレッドをブロックしないよう別スレッドで実行する。
+    # -------------------------------------------------
+    def run_analysis(self):
+
+        if 0 not in self.saved_files or 1 not in self.saved_files:
+            self.log("Analysis skipped : vehicle0/vehicle1 のログが揃っていません")
+            return
+
+        files = [self.saved_files[0], self.saved_files[1]]
+
+        def _worker():
+
+            self.log("Analyzing log data ...")
+
+            try:
+
+                result = subprocess.run(
+                    [sys.executable, ANALYZE_SCRIPT] + files,
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                )
+
+                for line in result.stdout.strip().splitlines():
+                    self.log(line)
+
+                if result.returncode != 0:
+                    self.log("Analysis Error :")
+                    for line in result.stderr.strip().splitlines():
+                        self.log(line)
+                else:
+                    self.log("Analysis finished.")
+
+            except Exception as e:
+
+                self.log(f"Analysis Error : {e}")
+
+        threading.Thread(target=_worker, daemon=True).start()
 
 
 # =====================================================
