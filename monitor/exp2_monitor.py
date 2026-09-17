@@ -10,6 +10,8 @@ import csv
 import queue
 import serial
 import os
+import sys
+import subprocess
 import serial.tools.list_ports
 
 import threading
@@ -26,6 +28,20 @@ from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg,
     NavigationToolbar2Tk
 )
+
+
+# =====================================================
+# パス設定
+# =====================================================
+# このファイルは monitor/ に置かれている想定。
+# ログは log/ に、解析プログラムは tool/exp2_analysis.py にあるものとし、
+# 実行時のカレントディレクトリに依存しないよう、このファイル自身の場所を
+# 基準に絶対パスを組み立てる。
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_ROOT = os.path.dirname(_SCRIPT_DIR)
+
+LOG_DIR = os.path.join(_PROJECT_ROOT, "log")
+ANALYSIS_SCRIPT = os.path.join(_PROJECT_ROOT, "tool", "exp2_analysis.py")
 
 
 # =====================================================
@@ -304,12 +320,12 @@ class SerialManager:
     # -------------------------------------------------
     def save_csv(self, vehicle):
 
-        os.makedirs("log", exist_ok=True)
+        os.makedirs(LOG_DIR, exist_ok=True)
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         filename = os.path.join(
-            "log",
+            LOG_DIR,
             f"{timestamp}_vehicle{vehicle}.csv"
         )
 
@@ -325,9 +341,34 @@ class SerialManager:
             # 保存が終わったらGUI側でグラフ表示できるように通知
             self.plot_queue.put(filename)
 
+            # 保存したログを解析プログラム(tool/exp2_analysis.py)に渡して解析する
+            self.launch_analysis(filename)
+
         except Exception as e:
 
             self.log(f"Save Error : {e}")
+
+    # -------------------------------------------------
+    # 解析プログラムの起動 (finishで得たログを解析する)
+    # -------------------------------------------------
+    def launch_analysis(self, filename):
+
+        if not os.path.isfile(ANALYSIS_SCRIPT):
+            self.log(f"Analysis Error : 解析プログラムが見つかりません ({ANALYSIS_SCRIPT})")
+            return
+
+        try:
+
+            subprocess.Popen(
+                [sys.executable, ANALYSIS_SCRIPT, os.path.abspath(filename)],
+                cwd=os.path.dirname(ANALYSIS_SCRIPT)
+            )
+
+            self.log(f"Analyzing : {filename}")
+
+        except Exception as e:
+
+            self.log(f"Analysis Launch Error : {e}")
 
 
 # =====================================================
