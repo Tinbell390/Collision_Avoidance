@@ -7,11 +7,11 @@
 **/__pycache__/
 **/*.pyc
 .venv/
-evaluate_crossing.py
 
 # Logs
 log/
 *.csv
+output/
 
 # OS
 .DS_Store
