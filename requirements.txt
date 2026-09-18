@@ -1,3 +1,4 @@
 pyserial
 pandas>=2.2
 matplotlib
+scipy
