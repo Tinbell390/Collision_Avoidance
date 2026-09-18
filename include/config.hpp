@@ -27,9 +27,9 @@ constexpr uint8_t SPEED_THRESHOLD_CM_S           = 5;     // 到着時間を計�
 // ============================================================
 // PID制御 (PID Control)
 // ============================================================
-constexpr float PID_KP_DEFAULT                   = 2.0F;   // 比例ゲインのデフォルト値
-constexpr float PID_KI_DEFAULT                   = 0.0004F;   // 積分ゲインのデフォルト値
-constexpr float PID_KD_DEFAULT                   = 1.0F;   // 微分ゲインのデフォルト値
+constexpr float PID_KP_DEFAULT                   = 1.0F;   // 比例ゲインのデフォルト値
+constexpr float PID_KI_DEFAULT                   = 0.0F;   // 積分ゲインのデフォルト値
+constexpr float PID_KD_DEFAULT                   = 0.0F;   // 微分ゲインのデフォルト値
 constexpr float PID_MAX_INTEGRAL                 = 100000.0F; // 積分項の最大値
 
 // ============================================================

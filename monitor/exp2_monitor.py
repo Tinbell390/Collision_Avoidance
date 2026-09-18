@@ -500,7 +500,7 @@ class MonitorGUI:
             text="KI"
         ).pack(side="left")
 
-        self.ki_var = tk.StringVar(value="1.0")
+        self.ki_var = tk.StringVar(value="0.0")
         ttk.Entry(
             gain_frame,
             width=8,
