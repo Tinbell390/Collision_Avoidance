@@ -19,7 +19,7 @@ constexpr int32_t DIST_TO_INTERSECTION_EXIT_MM   = 200;   // 交差点退出位�
 // ============================================================
 // 速度パラメータ (Speed)
 // ============================================================
-constexpr int32_t DEFAULT_SPEED_CM_S             = 200;   // デフォルト速度（センチメートル/秒）
+constexpr int32_t DEFAULT_SPEED_CM_S             = 150;   // デフォルト速度（センチメートル/秒）
 constexpr int32_t MAX_SPEED_CM_S                 = 300;   // 最大速度（センチメートル/秒）
 constexpr int32_t MIN_SPEED_CM_S                 = 20;    // 最小速度（センチメートル/秒）
 constexpr uint8_t SPEED_THRESHOLD_CM_S           = 5;     // 到着時間を計算しても良い速度閾値（センチメートル/秒）
