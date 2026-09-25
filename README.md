@@ -38,3 +38,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 pythonがうまく動かない場合,`.venv`を削除してセットアップをもう一度行う．その後，もう一度実行する．
 
 `ModuleNotFoundError: No module named 'serial'`とでたら，powershell(windows) or bash(Linux)で`python -m pip install pyserial`を実行する
+
+platformIOのCLIの開き方
+- 上の検索ボックスで`>platformIO Open PlatformIO Core CLI`を入力
+
