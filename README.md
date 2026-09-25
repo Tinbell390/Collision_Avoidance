@@ -30,5 +30,11 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\.venv\Scripts\Activate.ps1
 ```
 
-ビルドがうまく行かないなら，左列のPIOアイコン(アリマーク)の`QUICK ACCESS/PIO Home/Platform`にある`Espressif 32`をアンインストールする．その後，ビルドを行う．
+ビルドがうまく行かないなら，左列のPIOアイコン(アリマーク)の`QUICK ACCESS/PIO Home/Platform`にある`Espressif 32`をアンインストールする．
+(これがうまく行かなければ，`C:\.platformio`または`C:\ユーザー\ユーザーネーム\.platformio`に移動し，`\packages\toolchain-riscv32-esp`と`\platforms\espressif32`を手動で削除する)
+その後，ビルドを行う．
+
+
 pythonがうまく動かない場合,`.venv`を削除してセットアップをもう一度行う．その後，もう一度実行する．
+
+`ModuleNotFoundError: No module named 'serial'`とでたら，powershell(windows) or bash(Linux)で`python -m pip install pyserial`を実行する

@@ -10,7 +10,7 @@ Write-Host "========================================"
 if (-Not (Test-Path ".venv")) {
     Write-Host ""
     Write-Host "[1/4] Creating Python virtual environment..."
-    py -m venv .venv
+    python -m venv .venv
 }
 else {
     Write-Host ""

@@ -1,4 +1,4 @@
 pyserial
-pandas>=2.2
+pandas
 matplotlib
 scipy
