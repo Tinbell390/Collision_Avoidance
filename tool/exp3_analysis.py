@@ -577,11 +577,6 @@ def build_report_markdown(csv_v0, csv_v1, images, crossing0, crossing1,
     lines.append("")
     lines.append(f"![negotiation order]({FIGURE_DIR_NAME}/{images['negotiation']})")
     lines.append("")
-    lines.append(
-        "ログに送受信メッセージ自体は残っていないため，ここでは "
-        "「EnterTime_us/ExitTime_us の予測値が新たに記録された行」を"
-        "1回のネゴシエーション（予測更新）とみなして集計している。"
-    )
     lines.append("")
     lines.append(
         f"- ネゴシエーション回数（進入までの予測更新回数）: "
