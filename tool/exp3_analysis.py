@@ -37,6 +37,7 @@ exp3_monitor.py から，走行終了後の後処理として呼び出される�
   3. 現在位置（速度の時間積分による推定走行距離）
   4. 交差点通過予測（EnterTime/ExitTime）の収束
   5. 実際の交差点占有区間のタイムライン
+  6. ネゴシエーション（通過順序の合意）結果と回数
 
 必要な想定CSVカラム:
   Time_us, Speed_cm_s, Target_speed_cm_s, Line_count,
@@ -221,6 +222,75 @@ def estimate_actual_crossing(pred_rows):
 
 
 # ------------------------------------------------------------
+# 6. ネゴシエーション（通過順序の合意）解析
+# ------------------------------------------------------------
+def analyze_negotiation(pred0, pred1, crossing0, crossing1):
+    """
+    交差点の通過順序を両車が予測値のやり取りによって決めていく過程を
+    「ネゴシエーション」とみなして解析する。
+
+    ログには送受信メッセージそのものは残っていないため，本関数では
+    「EnterTime_us/ExitTime_us の予測値が新たに記録された行」を1回の
+    ネゴシエーション（予測更新）とみなして，以下を算出する。
+
+      - updates_vehicle0 / updates_vehicle1:
+          各車が実際に交差点へ進入するまでに送信した予測更新の回数
+          （進入していない場合はログ全体の更新回数）
+      - order_flips:
+          「どちらが先に交差点へ入る予定か」という予測上の優先順位が，
+          時間の経過とともに何回入れ替わったか。0であれば最初から
+          最後まで優先順位が一貫していたことを意味し，値が大きいほど
+          交渉が難航（振動）したとみなせる目安になる。
+      - final_order:
+          実際に（または最終予測上）先に交差点へ進入したのはどちらか。
+      - gap_ms:
+          先行車の退出から後続車の進入までの間隔[ms]（5節と同じ定義）。
+          負の場合は交差点内で重複が生じたことを意味する。
+    """
+
+    def count_updates_until_entry(pred_rows, crossing):
+        if len(pred_rows) == 0:
+            return 0
+        if crossing["is_actual"] and crossing["enter_us"] is not None:
+            return int((pred_rows["Time_us"] <= crossing["enter_us"]).sum())
+        return len(pred_rows)
+
+    n0 = count_updates_until_entry(pred0, crossing0)
+    n1 = count_updates_until_entry(pred1, crossing1)
+
+    order_flips = 0
+    if len(pred0) > 0 and len(pred1) > 0:
+        merged = pd.merge_asof(
+            pred0[["Time_us", "AbsEnter_us"]].sort_values("Time_us"),
+            pred1[["Time_us", "AbsEnter_us"]].sort_values("Time_us"),
+            on="Time_us", direction="nearest",
+            suffixes=("_v0", "_v1"),
+        )
+        orders = np.where(
+            merged["AbsEnter_us_v0"] <= merged["AbsEnter_us_v1"], 0, 1)
+        order_flips = int(np.sum(orders[1:] != orders[:-1]))
+
+    final_order = None
+    gap_ms = None
+    if crossing0["enter_us"] is not None and crossing1["enter_us"] is not None:
+        if crossing0["enter_us"] <= crossing1["enter_us"]:
+            first, second = crossing0, crossing1
+            final_order = (VEHICLE_LABELS[0], VEHICLE_LABELS[1])
+        else:
+            first, second = crossing1, crossing0
+            final_order = (VEHICLE_LABELS[1], VEHICLE_LABELS[0])
+        gap_ms = (second["enter_us"] - first["exit_us"]) / 1000.0
+
+    return {
+        "updates_vehicle0": n0,
+        "updates_vehicle1": n1,
+        "order_flips": order_flips,
+        "final_order": final_order,
+        "gap_ms": gap_ms,
+    }
+
+
+# ------------------------------------------------------------
 # 1. 速度プロファイル（実速度 vs 目標速度）
 # ------------------------------------------------------------
 def plot_speed_profile(v0, v1, fig_dir):
@@ -376,6 +446,38 @@ def plot_timeline_gantt(crossing0, crossing1, fig_dir):
 
 
 # ------------------------------------------------------------
+# 6. ネゴシエーション優先順位の推移
+# ------------------------------------------------------------
+def plot_negotiation_order(pred0, pred1, negotiation, fig_dir):
+    fig, ax = plt.subplots(figsize=(8, 2.6))
+
+    if len(pred0) > 0 and len(pred1) > 0:
+        merged = pd.merge_asof(
+            pred0[["Time_ms", "AbsEnter_us"]].sort_values("Time_ms"),
+            pred1[["Time_ms", "AbsEnter_us"]].sort_values("Time_ms"),
+            on="Time_ms", direction="nearest",
+            suffixes=("_v0", "_v1"),
+        )
+        order = np.where(
+            merged["AbsEnter_us_v0"] <= merged["AbsEnter_us_v1"], 1, 0)
+        ax.step(merged["Time_ms"], order, where="post", color="tab:green",
+                linewidth=1.5)
+
+    ax.set_yticks([0, 1])
+    ax.set_yticklabels(["vehicle1 first", "vehicle0 first"])
+    ax.set_xlabel("Time [ms]")
+    ax.set_title(f"Predicted priority order (flips: {negotiation['order_flips']})",
+                 fontsize=9)
+    ax.grid(alpha=0.3)
+    fig.tight_layout()
+
+    fname = "06_negotiation_order.png"
+    fig.savefig(os.path.join(fig_dir, fname), dpi=150)
+    plt.close(fig)
+    return fname
+
+
+# ------------------------------------------------------------
 # レポート本文の組み立て
 # ------------------------------------------------------------
 def crossing_description(label, crossing):
@@ -389,7 +491,8 @@ def crossing_description(label, crossing):
     return desc
 
 
-def build_report_markdown(csv_v0, csv_v1, images, crossing0, crossing1):
+def build_report_markdown(csv_v0, csv_v1, images, crossing0, crossing1,
+                           negotiation):
     lines = []
     lines.append("# 実験3 走行データ解析レポート")
     lines.append("")
@@ -470,6 +573,42 @@ def build_report_markdown(csv_v0, csv_v1, images, crossing0, crossing1):
         )
         lines.append("")
 
+    lines.append("## 6. ネゴシエーション結果と回数")
+    lines.append("")
+    lines.append(f"![negotiation order]({FIGURE_DIR_NAME}/{images['negotiation']})")
+    lines.append("")
+    lines.append(
+        "ログに送受信メッセージ自体は残っていないため，ここでは "
+        "「EnterTime_us/ExitTime_us の予測値が新たに記録された行」を"
+        "1回のネゴシエーション（予測更新）とみなして集計している。"
+    )
+    lines.append("")
+    lines.append(
+        f"- ネゴシエーション回数（進入までの予測更新回数）: "
+        f"{VEHICLE_LABELS[0]} = {negotiation['updates_vehicle0']} 回, "
+        f"{VEHICLE_LABELS[1]} = {negotiation['updates_vehicle1']} 回"
+    )
+    lines.append(
+        f"- 予測上の通過順序が入れ替わった回数: "
+        f"{negotiation['order_flips']} 回"
+        + ("（一度も入れ替わらず，最初から順序が一貫していました）"
+           if negotiation['order_flips'] == 0 else "")
+    )
+    if negotiation["final_order"] is not None:
+        first_label, second_label = negotiation["final_order"]
+        gap_txt = (f"{negotiation['gap_ms']:.1f} ms"
+                   if negotiation["gap_ms"] is not None else "不明")
+        verdict = ("安全" if (negotiation["gap_ms"] is not None
+                              and negotiation["gap_ms"] >= 0) else "衝突リスクあり")
+        lines.append(
+            f"- 最終的なネゴシエーション結果: **{first_label} が先に交差点へ"
+            f"進入**し，{second_label} がそれに続いた"
+            f"（退出-進入間隔: {gap_txt}，判定: {verdict}）"
+        )
+    else:
+        lines.append("- 最終的なネゴシエーション結果: 判定に必要なデータが不足しています。")
+    lines.append("")
+
     return "\n".join(lines)
 
 
@@ -495,6 +634,7 @@ def run_analysis(arg_files):
     pred1 = get_prediction_rows(v1)
     crossing0 = estimate_actual_crossing(pred0)
     crossing1 = estimate_actual_crossing(pred1)
+    negotiation = analyze_negotiation(pred0, pred1, crossing0, crossing1)
 
     images = {}
     images["speed_profile"] = plot_speed_profile(v0, v1, fig_dir)
@@ -503,8 +643,10 @@ def run_analysis(arg_files):
     images["convergence"] = plot_prediction_convergence(
         pred0, pred1, crossing0, crossing1, fig_dir)
     images["gantt"] = plot_timeline_gantt(crossing0, crossing1, fig_dir)
+    images["negotiation"] = plot_negotiation_order(pred0, pred1, negotiation, fig_dir)
 
-    report_md = build_report_markdown(csv_v0, csv_v1, images, crossing0, crossing1)
+    report_md = build_report_markdown(
+        csv_v0, csv_v1, images, crossing0, crossing1, negotiation)
 
     report_path = os.path.join(run_outdir, REPORT_FILENAME)
     with open(report_path, "w", encoding="utf-8") as f:
