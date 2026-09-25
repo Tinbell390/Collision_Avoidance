@@ -1,0 +1,45 @@
+# build.py（実験書への付録埋め込み）専用の除外パターン
+# 旧 exclude.txt の内容をここに移してください。
+#
+# 仕様:
+#   - '#' で始まる行はコメント
+#   - 空行は無視
+#   - 末尾が '/' のパターンはディレクトリのみに一致
+#   - '*' 等のワイルドカードは fnmatch 相当で解釈
+#
+# 例:
+# *.png
+# build/
+
+# Git
+.git
+.gitignore
+
+# PlatformIO
+.pio/
+
+# Python
+__pycache__/
+*.pyc
+.venv
+
+
+# pdf
+*.pdf
+
+lib/
+
+# 
+log/
+output/
+lesson/
+
+# IDE
+.vscode/
+.idea/
+
+README.md
+requirements.txt
+setup.dat
+setup.ps1
+setup.sh

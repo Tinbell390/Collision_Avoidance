@@ -4,10 +4,14 @@
 docs/_common.py
 
 docs/build.py と docs/distribute.py で共有するロジック
-（プロジェクトルート/docs/testの位置、exclude.txtの読み込み、
+（プロジェクトルート/docs/testの位置、exclude_*.txtの読み込み、
 ファイル探索、test/による差し替えの解決）をまとめたモジュール。
 
-コードの二重管理を避けるため、選定ルールはここに一本化する。
+コードの二重管理を避けるため、探索・差し替えの仕組み自体はここに一本化する。
+一方で「何を除外するか」は build.py と distribute.py で目的が異なる
+（前者は実験書への掲載可否、後者は配布物への収録可否）ため、
+除外パターンのファイルはあえて分離している
+（EXCLUDE_FILE_BUILD / EXCLUDE_FILE_DISTRIBUTE）。
 このファイル自体は docs/ 以下にあるため、常に付録・配布対象からは除外される。
 """
 
@@ -25,7 +29,17 @@ DOCS_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = DOCS_DIR.parent
 
 TEST_DIR = PROJECT_ROOT / "test"
-EXCLUDE_FILE = DOCS_DIR / "exclude.txt"
+
+# build.py（実験書への付録埋め込み）用の除外リスト
+EXCLUDE_FILE_BUILD = DOCS_DIR / "exclude_build.txt"
+# distribute.py（配布用フォルダ作成）用の除外リスト
+# build.py とは目的が異なる（配布したくない資料等を除外する）ため、
+# あえて別ファイルとして独立させている。
+EXCLUDE_FILE_DISTRIBUTE = DOCS_DIR / "exclude_distribute.txt"
+
+# 後方互換のため、旧名 EXCLUDE_FILE は build 用の別名として残す
+EXCLUDE_FILE = EXCLUDE_FILE_BUILD
+
 EXPERIMENT_MD = DOCS_DIR / "実験書.md"
 OUTPUT_PDF = DOCS_DIR / "実験書.pdf"
 
@@ -37,7 +51,7 @@ ALWAYS_EXCLUDED_DIR_NAMES = {"docs", "test"}
 # exclude.txt の読み込み
 # ============================================================
 
-def load_exclude_patterns(path: Path = EXCLUDE_FILE) -> list[str]:
+def load_exclude_patterns(path: Path = EXCLUDE_FILE_BUILD) -> list[str]:
     """exclude.txt を読み込み、コメント・空行を除いたパターンのリストを返す。
 
     仕様:

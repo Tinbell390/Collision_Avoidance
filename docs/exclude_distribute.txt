@@ -1,0 +1,43 @@
+# distribute.py（学生配布用フォルダ作成）専用の除外パターン
+# build.py の exclude_build.txt とは独立しています。
+# ここには「配布したくない」ファイル・ディレクトリだけを列挙してください
+# （実験書への掲載可否とは無関係です）。
+#
+# 仕様:
+#   - '#' で始まる行はコメント
+#   - 空行は無視
+#   - 末尾が '/' のパターンはディレクトリのみに一致
+#   - '*' 等のワイルドカードは fnmatch 相当で解釈
+#
+# 例:
+# 実験書.md
+# 実験書.pdf
+# answer_key/
+# Git
+
+
+.git
+.gitignore
+
+# PlatformIO
+.pio/
+
+# Python
+__pycache__/
+*.pyc
+.venv
+
+
+# pdf
+*.pdf
+
+lib/
+
+# 
+log/
+output/
+lesson/assignment/
+
+# IDE
+.vscode/
+.idea/

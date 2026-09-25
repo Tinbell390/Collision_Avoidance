@@ -29,8 +29,9 @@ PDF化はVSCodeのMarkdown PDF拡張など、別の手段で行うことを想�
      最新の内容で書き直す。マーカー自体・マーカーの外側の本文は変更しない。
 
 設計方針（詳細は元の設計書を参照）:
-  - ファイルの選定ルール（docs/・test/の除外、exclude.txt、test/による差し替え等）
-    は docs/_common.py に一本化されており、docs/distribute.py と共有する。
+  - ファイル探索・test/による差し替えの仕組みは docs/_common.py に一本化されており、
+    docs/distribute.py と共有する。ただし除外パターンは docs/exclude_build.txt を
+    使用し、distribute.py の docs/exclude_distribute.txt とは独立している。
   - マーカーで囲まれた部分は自動生成物であり、人間が直接編集することは
     想定しない（次回実行で上書きされる）。
   - LaTeXは使用できない環境のため、図・リストのキャプションはすべてHTMLタグ
@@ -52,7 +53,7 @@ import _common as common  # noqa: E402
 
 DOCS_DIR = common.DOCS_DIR
 PROJECT_ROOT = common.PROJECT_ROOT
-EXCLUDE_FILE = common.EXCLUDE_FILE
+EXCLUDE_FILE = common.EXCLUDE_FILE_BUILD
 EXPERIMENT_MD = common.EXPERIMENT_MD
 
 # 実験書.md 内のマーカー（それぞれ実験書.md 内に1組だけ書いておく）
@@ -289,7 +290,7 @@ def update_experiment_md(file_structure_body: str, source_code_body: str) -> Non
 # ============================================================
 
 def main():
-    exclude_patterns = common.load_exclude_patterns()
+    exclude_patterns = common.load_exclude_patterns(EXCLUDE_FILE)
     rel_paths = common.walk_project(PROJECT_ROOT, exclude_patterns)
 
     print(f"[build.py] 付録対象ファイル数: {len(rel_paths)}")

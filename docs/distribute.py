@@ -8,13 +8,16 @@ docs/distribute.py
 - プロジェクトルートと同じ階層（1つ上のディレクトリ）に
   "2026_higlab_設計製作_配布用" というフォルダを新規作成する。
   既に存在する場合は、一度削除してから作り直す（＝1から生成）。
-- 収録するファイルの条件は docs/build.py の付録対象と同じで、
-  docs/_common.py の選定ルールをそのまま使う:
+- ファイル探索・test/による差し替えの仕組みは docs/build.py と共通で、
+  docs/_common.py のロジックをそのまま使う:
     - docs/ と test/ は除外
-    - docs/exclude.txt に列挙されたものは除外
-    - 付録対象ファイル X について test/X が存在すればそちらを使う
+    - 収録対象ファイル X について test/X が存在すればそちらを使う
       （穴埋め版への差し替え）
-  ただし、Markdownへの埋め込みではなく実ファイルをそのままコピーするので、
+  ただし「何を除外するか」は build.py（実験書への掲載可否）とは目的が異なるため、
+  除外パターンは docs/exclude_build.txt を共有せず、独立したファイル
+  docs/exclude_distribute.txt に列挙する。
+  （実験書には載せたくないが配布はしたいファイル／その逆、のどちらも表現できる）
+  また、Markdownへの埋め込みではなく実ファイルをそのままコピーするので、
   バイナリファイルやファイルサイズ上限などの制限（build.py側の都合）は適用しない。
 - 最後に docs/実験書.pdf を配布用フォルダの直下（サブフォルダなし）にコピーする。
   事前に実験書.md をPDF化（VSCodeのMarkdown PDF拡張など）し、
@@ -74,7 +77,7 @@ def copy_experiment_pdf() -> None:
 def main():
     recreate_dist_root()
 
-    exclude_patterns = common.load_exclude_patterns()
+    exclude_patterns = common.load_exclude_patterns(common.EXCLUDE_FILE_DISTRIBUTE)
     rel_paths = common.walk_project(common.PROJECT_ROOT, exclude_patterns)
     print(f"[distribute.py] コピー対象ファイル数: {len(rel_paths)}")
 
