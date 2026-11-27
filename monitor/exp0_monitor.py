@@ -13,7 +13,7 @@ ESP32-C3 -> Python : HELLO FROM ESP32-C3
 from serial_common import SerialManager as SharedSerialManager
 
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from tkinter.scrolledtext import ScrolledText
 
 
@@ -167,36 +167,25 @@ class MonitorGUI:
     # 接続
     # =================================================
     def connect(self):
-
-        if self.serial.ser is None:
-
-            port = self.port_var.get()
-
-            if port == "":
-                return
-
-            if self.serial.connect(port):
-
-                self.connect_button.config(
-                    text="Disconnect",
-                    command=self.disconnect
-                )
-
-        else:
-
+        if self.serial.connected:
             self.disconnect()
+            return
+        if self.serial.connecting:
+            return
+        port_label = self.port_var.get()
+        if not port_label:
+            return
+        if "(not recommended)" in port_label and not messagebox.askyesno(
+                "Unrecognized serial device",
+                "This port is not in the recommended USB-serial list. Continue anyway?"):
+            return
+        if self.serial.connect(port_label, expected_id="test"):
+            self.connect_button.config(text="Connecting...", state="disabled")
 
-    # =================================================
-    # 切断
-    # =================================================
     def disconnect(self):
-
         self.serial.disconnect()
+        self.connect_button.config(text="Connect", command=self.connect, state="normal")
 
-        self.connect_button.config(
-            text="Connect",
-            command=self.connect
-        )
 
     # =================================================
     # HELLO
@@ -209,6 +198,16 @@ class MonitorGUI:
     # ログ更新
     # =================================================
     def update_log(self):
+
+        while True:
+            event = self.serial.get_event()
+            if event is None:
+                break
+            event_type, detail = event
+            if event_type == "connected":
+                self.connect_button.config(text="Disconnect", command=self.disconnect, state="normal")
+            elif event_type in ("connect_failed", "disconnected"):
+                self.connect_button.config(text="Connect", command=self.connect, state="normal")
 
         while True:
 
