@@ -33,8 +33,9 @@ class PortInfo:
     @property
     def label(self) -> str:
         vidpid = f"{self.vid:04X}:{self.pid:04X}" if self.vid is not None and self.pid is not None else "VID:PID unknown"
+        serial_text = f" SN={self.serial_number}" if self.serial_number else ""
         marker = " ★" if self.recommended else " (not recommended)"
-        return f"{self.device} - {self.description} [{vidpid}]{marker}"
+        return f"{self.device} - {self.description} [{vidpid}]{serial_text}{marker}"
 
 
 class SerialManager:
@@ -47,6 +48,8 @@ class SerialManager:
         self.event_queue = queue.Queue()
         self._lock = threading.RLock()
         self._connecting = False
+        self._connect_done = None
+        self._connect_timed_out = False
         self._ports_by_label = {}
 
     @property
@@ -97,6 +100,9 @@ class SerialManager:
             if self.ser is not None or self._connecting:
                 return False
             self._connecting = True
+            self._connect_timed_out = False
+            self._connect_done = threading.Event()
+            done_event = self._connect_done
         details = self.port_details()
         match = next((p for p in details if p.label == port_label or p.device == port_label), None)
         if match is None:
@@ -105,12 +111,25 @@ class SerialManager:
             self.log("Connection Error: selected serial port is no longer available. Refresh the list.")
             self.event_queue.put(("connect_failed", "Port not available"))
             return False
-        self.connect_thread = threading.Thread(target=self._connect_worker, args=(match, baudrate, expected_id), daemon=True)
+        self.connect_thread = threading.Thread(target=self._connect_worker, args=(match, baudrate, expected_id, done_event), daemon=True)
         self.connect_thread.start()
+        threading.Thread(target=self._connect_watchdog, args=(done_event, match.device), daemon=True).start()
         self.log(f"Connecting: {match.device} ...")
         return True
 
-    def _connect_worker(self, port, baudrate, expected_id):
+    def _connect_watchdog(self, done_event, device):
+        if done_event.wait(5.0):
+            return
+        with self._lock:
+            if not self._connecting:
+                return
+            self._connecting = False
+            self._connect_timed_out = True
+        reason = f"Timed out after 5 seconds while opening/identifying {device}. Check the port and USB cable."
+        self.log(f"Connection Error: {reason}")
+        self.event_queue.put(("connect_failed", reason))
+
+    def _connect_worker(self, port, baudrate, expected_id, done_event):
         ser = None
         try:
             ser = serial.Serial(port=None, baudrate=baudrate, timeout=0.1, write_timeout=1.0)
@@ -157,9 +176,13 @@ class SerialManager:
             self.event_queue.put(("connected", port.device))
             ser = None
         except Exception as exc:
-            self.log(f"Connection Error: {exc}")
-            self.event_queue.put(("connect_failed", str(exc)))
+            with self._lock:
+                already_timed_out = self._connect_timed_out
+            if not already_timed_out:
+                self.log(f"Connection Error: {exc}")
+                self.event_queue.put(("connect_failed", str(exc)))
         finally:
+            done_event.set()
             if ser is not None:
                 try:
                     ser.close()
