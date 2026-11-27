@@ -7,6 +7,20 @@ connection, disconnect, command sending, and receive-thread management. Experime
 and 3 keep their CSV transfer, plotting, and analysis handlers in their own monitor
 classes while inheriting connection handling.
 
+## Phase 3: log and CSV safety
+
+- The shared serial manager uses a bounded GUI log queue (5,000 messages). If the GUI
+  cannot keep up with serial output, the oldest queued display message is discarded
+  rather than allowing the queue to grow without bound.
+- Experiment 2 and 3 CSV exports are written to a temporary file and atomically moved
+  into place after writing completes. Existing files are not overwritten; a numeric
+  suffix is added when a timestamp-based name already exists.
+- A failed CSV write attempts to remove the temporary file.
+
+These safeguards protect the monitor process from unbounded GUI log backlog and reduce
+the risk of partially written CSV files or accidental log overwrites. They do not
+replace hardware testing or backup practices.
+
 ## Firmware identity check
 
 Before a monitor starts its receive thread, it sends `WHOAMI` and verifies the reply:

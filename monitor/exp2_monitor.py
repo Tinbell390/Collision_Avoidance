@@ -210,13 +210,19 @@ class SerialManager(SharedSerialManager):
             LOG_DIR,
             f"{timestamp}_vehicle{vehicle}.csv"
         )
+        # Avoid overwriting a log created within the same timestamp second.
+        suffix = 1
+        while os.path.exists(filename):
+            filename = os.path.join(LOG_DIR, f"{timestamp}_vehicle{vehicle}_{suffix}.csv")
+            suffix += 1
+        temporary = filename + ".tmp"
 
         try:
 
-            with open(filename, "w", encoding="utf-8") as f:
-
+            with open(temporary, "w", encoding="utf-8", newline="") as f:
                 for line in self.csv_buffer:
                     f.write(line + "\n")
+            os.replace(temporary, filename)
 
             self.log(f"Saved : {filename}")
 
@@ -228,6 +234,11 @@ class SerialManager(SharedSerialManager):
 
         except Exception as e:
 
+            try:
+                if os.path.exists(temporary):
+                    os.remove(temporary)
+            except OSError:
+                pass
             self.log(f"Save Error : {e}")
 
     # -------------------------------------------------
