@@ -239,6 +239,11 @@ class SerialManager(SharedSerialManager):
 
         except Exception as e:
 
+            try:
+                if os.path.exists(temporary):
+                    os.remove(temporary)
+            except OSError:
+                pass
             self.log(f"Save Error : {e}")
 
     # -------------------------------------------------
