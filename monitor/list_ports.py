@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Print serial-port metadata without opening any port."""
-from serial_common import SerialManager, EXPECTED_USB_IDS
+try:
+    from .serial_common import SerialManager, EXPECTED_USB_IDS
+except ImportError:
+    from serial_common import SerialManager, EXPECTED_USB_IDS
 
 
 def main():
