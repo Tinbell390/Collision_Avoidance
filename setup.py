@@ -119,8 +119,8 @@ def main() -> int:
         builds_ok = True
         for env_name in ENVIRONMENTS:
             build_dir = ROOT / ".pio" / "build" / env_name
-            if build_dir.exists() and not args.rebuild:
-                print(f"  SKIP {env_name}: build directory exists (use --rebuild to force)")
+            if (build_dir / "firmware.bin").is_file() and not args.rebuild:
+                print(f"  SKIP {env_name}: firmware.bin exists (use --rebuild to force)")
                 continue
             print(f"  BUILD {env_name}")
             try:
