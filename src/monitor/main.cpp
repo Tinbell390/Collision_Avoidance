@@ -20,7 +20,10 @@ void loop(){
     String cmd = Serial.readStringUntil('\n');
     cmd.trim();
 
-    if (cmd == "WHOAMI"){\n        Serial.println("WHOAMI monitor");\n    }\n    else if (cmd == "start"){
+    if (cmd == "WHOAMI"){
+        Serial.println("WHOAMI monitor");
+    }
+    else if (cmd == "start"){
         send_start(false,false);
         open_log_file();
         Serial.println("Send START (CollisionFlag = false)");

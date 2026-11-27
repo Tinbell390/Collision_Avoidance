@@ -425,7 +425,10 @@ void loop(){
         command.trim();
 
         // HELLO送信
-        if(command == "WHOAMI"){\n            Serial.println("WHOAMI espnow");\n        }\n        else if(command == "HELLO"){
+        if(command == "WHOAMI"){
+            Serial.println("WHOAMI espnow");
+        }
+        else if(command == "HELLO"){
             send_hello();
         }
 
