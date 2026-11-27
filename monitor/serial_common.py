@@ -42,6 +42,7 @@ class SerialManager:
     def __init__(self):
         self.ser = None
         self.running = False
+        self.rx_prefix = ""
         self.receive_thread = None
         self.connect_thread = None
         self.message_queue = queue.Queue()
@@ -222,6 +223,14 @@ class SerialManager:
             self.log("> " + str(command))
         except Exception as exc:
             self.log(f"Send Error: {exc}")
+            with self._lock:
+                self.running = False
+                if self.ser is ser:
+                    self.ser = None
+            try:
+                ser.close()
+            except Exception:
+                pass
             self.event_queue.put(("disconnected", str(exc)))
 
     def send_hello(self):
@@ -248,7 +257,7 @@ class SerialManager:
                     continue
                 text = line.decode(errors="replace").strip()
                 if text:
-                    self.log(text)
+                    self.log(f"{self.rx_prefix}{text}")
             except (serial.SerialException, OSError) as exc:
                 if self.running:
                     self.log(f"Receive Error: {exc}")
