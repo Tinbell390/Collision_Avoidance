@@ -287,7 +287,7 @@ class MonitorGUI:
 
         self.port_box = ttk.Combobox(
             top,
-            width=20,
+            width=55,
             textvariable=self.port_var,
             state="readonly"
         )
