@@ -530,6 +530,8 @@ class MonitorGUI:
                 self.connect_button.config(text="Disconnect", command=self.disconnect, state="normal")
             elif event_type in ("connect_failed", "disconnected"):
                 self.connect_button.config(text="Connect", command=self.connect, state="normal")
+                if event_type == "connect_failed":
+                    messagebox.showwarning("Serial connection failed", detail)
 
         while True:
 
