@@ -14,7 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 VENV = ROOT / ".venv"
 ENVIRONMENTS = ("test", "espnow", "vehicle", "monitor")
-REQUIRED_MODULES = ("serial", "serial.tools.list_ports", "numpy", "pandas", "scipy", "matplotlib", "tkinter")
+REQUIRED_MODULES = ("serial", "serial.tools.list_ports", "numpy", "pandas", "scipy", "matplotlib", "matplotlib.backends.backend_tkagg", "tkinter")
 
 
 def run(command: list[str], *, check: bool = True, env: dict | None = None) -> subprocess.CompletedProcess:
