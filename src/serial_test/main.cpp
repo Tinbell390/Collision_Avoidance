@@ -18,7 +18,7 @@ void loop()
         message.trim();
 
         // HELLOを受信したら応答
-        if (message == "HELLO")
+        if (message == "WHOAMI")\n        {\n            Serial.println("WHOAMI test");\n        }\n        else if (message == "HELLO")
         {
             // MACアドレスを取得
             uint8_t mac[6];
