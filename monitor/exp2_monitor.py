@@ -56,6 +56,12 @@ class SerialManager(SharedSerialManager):
         self.expected_count = None
         self.received_count = 0
 
+    def get_plot_request(self):
+        try:
+            return self.plot_queue.get_nowait()
+        except queue.Empty:
+            return None
+
     # START
     # -------------------------------------------------
     def send_start(self):
