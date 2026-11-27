@@ -1,36 +1,56 @@
 # CollisionAvoidance
 
-## 必要なソフト
+## 必要なソフトウェア
 
-- VSCode
-- PlatformIO IED
-- C/C++
+- VS Code
+- PlatformIO IDE Extension
 - C/C++ Extension Pack
-- Python
-- Pylance
-- Python Debugger
-- Python Enviroments
-
-- Python 3.11以上
+- Python Extension、Pylance、Python Debugger、Python Environments
+- Python 3.11 以上
 
 ## 初回セットアップ
 
-Linux
+セットアップスクリプトは Python 仮想環境、依存パッケージ、モジュール確認、PlatformIO 4環境のビルドをまとめて行います。
+
+### Linux
 
 ```bash
-sudo chmod +x setup.sh 
+chmod +x setup.sh
 ./setup.sh
 source .venv/bin/activate
 ```
-Windows
 
-```bash
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\setup.ps1
-.\.venv\Scripts\Activate.ps1
+Tkinter が不足している場合: `sudo apt install python3-tk`。USBシリアルアクセスに `dialout` が必要な場合は、セットアップの案内に従いグループ追加後にログインし直してください。
+
+### Windows
+
+コマンドプロンプト:
+
+```bat
+setup.bat
+.venv\\Scripts\\activate.bat
 ```
 
+PowerShell:
 
+```powershell
+.\\setup.ps1
+.\\.venv\\Scripts\\Activate.ps1
+```
+
+PowerShellの実行ポリシー変更は不要です。旧 `setup.dat` も互換用に残し、`setup.bat` に委譲します。
+
+### オプション
+
+```text
+python setup.py --force       # 仮想環境を再作成
+python setup.py --skip-pio   # PlatformIOビルドを省略
+python setup.py --rebuild    # 全環境を再ビルド
+```
+
+ビルド対象: `test`、`espnow`、`vehicle`、`monitor`。失敗は終了コードに反映されます。
+
+---
 
 # PlatformIO セットアップ時のトラブルシューティング
 
