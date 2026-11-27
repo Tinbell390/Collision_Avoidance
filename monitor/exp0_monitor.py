@@ -10,7 +10,10 @@ ESP32-C3 -> Python : HELLO FROM ESP32-C3
     pip install pyserial
 """
 
-from serial_common import SerialManager as SharedSerialManager
+try:
+    from .serial_common import SerialManager as SharedSerialManager
+except ImportError:
+    from serial_common import SerialManager as SharedSerialManager
 
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -156,12 +159,14 @@ class MonitorGUI:
     # =================================================
     def refresh_ports(self):
 
+        selected = self.port_var.get()
         ports = self.serial.get_ports()
 
         self.port_box["values"] = ports
 
-        if len(ports) > 0:
-
+        if selected in ports:
+            self.port_var.set(selected)
+        elif len(ports) > 0:
             self.port_box.current(0)
 
     # =================================================
