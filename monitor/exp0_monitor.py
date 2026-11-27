@@ -10,11 +10,7 @@ ESP32-C3 -> Python : HELLO FROM ESP32-C3
     pip install pyserial
 """
 
-import queue
-import serial
-import serial.tools.list_ports
-
-import threading
+from serial_common import SerialManager as SharedSerialManager
 
 import tkinter as tk
 from tkinter import ttk
@@ -24,158 +20,9 @@ from tkinter.scrolledtext import ScrolledText
 # =====================================================
 # SerialManager
 # =====================================================
-class SerialManager:
-
-    def __init__(self):
-
-        self.ser = None
-
-        self.running = False
-
-        self.receive_thread = None
-
-        # GUIへ渡すメッセージ
-        self.message_queue = queue.Queue()
-
-    # -------------------------------------------------
-    # GUIへログ表示
-    # -------------------------------------------------
-    def log(self, text):
-
-        print(text)
-
-        self.message_queue.put(text)
-
-    # -------------------------------------------------
-    # GUI用メッセージ取得
-    # -------------------------------------------------
-    def get_message(self):
-
-        try:
-            return self.message_queue.get_nowait()
-
-        except queue.Empty:
-            return None
-
-    # -------------------------------------------------
-    # COMポート一覧取得
-    # -------------------------------------------------
-    @staticmethod
-    def get_ports():
-
-        ports = serial.tools.list_ports.comports()
-
-        return [port.device for port in ports]
-
-    # -------------------------------------------------
-    # 接続
-    # -------------------------------------------------
-    def connect(self, port, baudrate=115200):
-
-        if self.ser is not None:
-            return True
-
-        try:
-
-            self.ser = serial.Serial(
-                port=port,
-                baudrate=baudrate,
-                timeout=0.1
-            )
-
-            self.running = True
-
-            self.receive_thread = threading.Thread(
-                target=self.receive_loop,
-                daemon=True
-            )
-
-            self.receive_thread.start()
-
-            self.log(f"Connected : {port}")
-
-            return True
-
-        except Exception as e:
-
-            self.log(f"Connection Error : {e}")
-
-            return False
-
-    # -------------------------------------------------
-    # 切断
-    # -------------------------------------------------
-    def disconnect(self):
-
-        self.running = False
-
-        if self.ser is not None:
-
-            try:
-                self.ser.close()
-
-            except:
-                pass
-
-            self.ser = None
-
-        self.log("Disconnected")
-
-    # -------------------------------------------------
-    # HELLO送信
-    # -------------------------------------------------
-    def send_hello(self):
-
-        if self.ser is None:
-            self.log("Not connected")
-
-            return
-
-        try:
-
-            self.ser.write(b"HELLO\n")
-
-            self.log("> HELLO")
-
-        except Exception as e:
-
-            self.log(f"Send Error : {e}")
-
-    # -------------------------------------------------
-    # 受信スレッド
-    # -------------------------------------------------
-    def receive_loop(self):
-
-        while self.running:
-
-            if self.ser is None:
-                break
-
-            try:
-
-                line = self.ser.readline()
-
-                if len(line) == 0:
-                    continue
-
-                text = line.decode(
-                    errors="ignore"
-                ).strip()
-
-                if text == "":
-                    continue
-
-                self.log("< " + text)
-
-            except Exception as e:
-
-                if self.running:
-                    self.log(f"Receive Error : {e}")
-
-                break
+SerialManager = SharedSerialManager
 
 
-# =====================================================
 # MonitorGUI
 # =====================================================
 class MonitorGUI:
