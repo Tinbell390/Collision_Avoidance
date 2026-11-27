@@ -54,6 +54,12 @@ class SerialManager(SharedSerialManager):
         self.saved_files = {}
         self.vehicle_data = {}
 
+    def get_plot_data(self):
+        try:
+            return self.plot_queue.get_nowait()
+        except queue.Empty:
+            return None
+
     # START（衝突フラグに応じて分岐）
     # -------------------------------------------------
     def send_start(self, collision):
