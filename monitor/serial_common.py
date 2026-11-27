@@ -126,15 +126,19 @@ class SerialManager:
                 raise TimeoutError("Serial port opening took longer than 5 seconds")
             time.sleep(1.5)
             ser.reset_input_buffer()
-            ser.write(b"WHOAMI\n")
-            deadline = time.monotonic() + 2.0
             response = ""
-            while time.monotonic() < deadline:
-                line = ser.readline()
-                if line:
-                    response = line.decode(errors="replace").strip()
-                    if response.startswith("WHOAMI "):
-                        break
+            for attempt in range(3):  # initial attempt + at most two retries
+                ser.write(b"WHOAMI\n")
+                deadline = time.monotonic() + 0.75
+                while time.monotonic() < deadline:
+                    line = ser.readline()
+                    if line:
+                        candidate = line.decode(errors="replace").strip()
+                        if candidate.startswith("WHOAMI "):
+                            response = candidate
+                            break
+                if response:
+                    break
             if not response.startswith("WHOAMI "):
                 raise RuntimeError("No WHOAMI response. Check port, firmware, and USB data cable.")
             actual = response.split(maxsplit=1)[1].strip()
@@ -224,7 +228,15 @@ class SerialManager:
                     self.log(text)
             except (serial.SerialException, OSError) as exc:
                 if self.running:
-                    self.event_queue.put(("disconnected", str(exc)))
                     self.log(f"Receive Error: {exc}")
+                    with self._lock:
+                        self.running = False
+                        if self.ser is ser:
+                            self.ser = None
+                    try:
+                        ser.close()
+                    except Exception:
+                        pass
+                    self.event_queue.put(("disconnected", str(exc)))
                 break
         self.running = False
