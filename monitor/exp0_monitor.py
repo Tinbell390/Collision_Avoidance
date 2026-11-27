@@ -23,7 +23,10 @@ from tkinter.scrolledtext import ScrolledText
 # =====================================================
 # SerialManager
 # =====================================================
-SerialManager = SharedSerialManager
+class SerialManager(SharedSerialManager):
+    def __init__(self):
+        super().__init__()
+        self.rx_prefix = "< "
 
 
 # MonitorGUI
