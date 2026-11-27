@@ -45,7 +45,8 @@ class SerialManager:
         self.rx_prefix = ""
         self.receive_thread = None
         self.connect_thread = None
-        self.message_queue = queue.Queue()
+        # Bound the GUI log backlog so sustained serial output cannot grow memory indefinitely.
+        self.message_queue = queue.Queue(maxsize=5000)
         self.event_queue = queue.Queue()
         self._lock = threading.RLock()
         self._connecting = False
@@ -64,8 +65,20 @@ class SerialManager:
             return self.ser is not None and self.ser.is_open
 
     def log(self, text):
-        print(text)
-        self.message_queue.put(str(text))
+        message = str(text)
+        print(message)
+        # Drop the oldest GUI log line if the bounded queue is full.
+        try:
+            self.message_queue.put_nowait(message)
+        except queue.Full:
+            try:
+                self.message_queue.get_nowait()
+            except queue.Empty:
+                pass
+            try:
+                self.message_queue.put_nowait(message)
+            except queue.Full:
+                pass
 
     def get_message(self):
         try:
