@@ -57,7 +57,7 @@ def check_imports() -> bool:
             failures.append((module, exc))
             print(f"  NG: {module}: {exc}")
     if failures:
-        if any(name == "tkinter" for name, _ in failures) and sys.platform.startswith("linux"):
+        if any(name.startswith("tkinter") or name.endswith("backend_tkagg") for name, _ in failures) and sys.platform.startswith("linux"):
             print("Tk support may be missing. Install it with: sudo apt install python3-tk")
         return False
     return True
