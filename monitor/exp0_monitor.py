@@ -69,6 +69,7 @@ class MonitorGUI:
             side="left",
             padx=5
         )
+        self.port_box.bind("<Button-1>", lambda _event: self.refresh_ports())
 
         ttk.Button(
             top,
