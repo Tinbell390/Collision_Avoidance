@@ -8,17 +8,19 @@ exp2_monitor.py
 """
 import csv
 import queue
-import serial
 import os
 import sys
 import subprocess
-import serial.tools.list_ports
 
 import threading
+try:
+    from .serial_common import SerialManager as SharedSerialManager
+except ImportError:
+    from serial_common import SerialManager as SharedSerialManager
 from datetime import datetime
 
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from tkinter.scrolledtext import ScrolledText
 
 import matplotlib
@@ -47,142 +49,22 @@ ANALYSIS_SCRIPT = os.path.join(_PROJECT_ROOT, "tool", "exp2_analysis.py")
 # =====================================================
 # SerialManager
 # =====================================================
-class SerialManager:
-
+class SerialManager(SharedSerialManager):
     def __init__(self):
-
-        self.ser = None
-
-        self.running = False
-
-        self.receive_thread = None
-
-        # GUIへ渡すメッセージ
-        self.message_queue = queue.Queue()
-
-        # 保存されたCSVパスをGUIへ渡す(グラフ表示用)
+        super().__init__()
         self.plot_queue = queue.Queue()
-
-        # CSV受信
         self.receiving_csv = False
         self.current_vehicle = None
         self.csv_buffer = []
-
-        # 転送予定ファイル数の管理
         self.expected_count = None
         self.received_count = 0
 
-    # -------------------------------------------------
-    # GUIへログ表示
-    # -------------------------------------------------
-    def log(self, text):
-
-        print(text)
-
-        self.message_queue.put(text)
-
-    # -------------------------------------------------
-    # GUI用メッセージ取得
-    # -------------------------------------------------
-    def get_message(self):
-
-        try:
-            return self.message_queue.get_nowait()
-        except queue.Empty:
-            return None
-
-    # -------------------------------------------------
-    # GUI用:保存されたCSVファイルパス取得
-    # -------------------------------------------------
     def get_plot_request(self):
-
         try:
             return self.plot_queue.get_nowait()
         except queue.Empty:
             return None
 
-    # -------------------------------------------------
-    # COMポート一覧取得
-    # -------------------------------------------------
-    @staticmethod
-    def get_ports():
-
-        ports = serial.tools.list_ports.comports()
-
-        return [port.device for port in ports]
-
-    # -------------------------------------------------
-    # 接続
-    # -------------------------------------------------
-    def connect(self, port, baudrate=115200):
-
-        if self.ser is not None:
-            return True
-
-        try:
-
-            self.ser = serial.Serial(
-                port=port,
-                baudrate=baudrate,
-                timeout=0.1
-            )
-
-            self.running = True
-
-            self.receive_thread = threading.Thread(
-                target=self.receive_loop,
-                daemon=True
-            )
-
-            self.receive_thread.start()
-
-            self.log(f"Connected : {port}")
-
-            return True
-
-        except Exception as e:
-
-            self.log(f"Connection Error : {e}")
-
-            return False
-
-    # -------------------------------------------------
-    # 切断
-    # -------------------------------------------------
-    def disconnect(self):
-
-        self.running = False
-
-        if self.ser is not None:
-
-            try:
-                self.ser.close()
-            except:
-                pass
-
-            self.ser = None
-
-        self.log("Disconnected")
-
-    # -------------------------------------------------
-    # コマンド送信
-    # -------------------------------------------------
-    def send(self, command):
-
-        if self.ser is None:
-            return
-
-        try:
-
-            self.ser.write((command + "\n").encode())
-
-            self.log("> " + command)
-
-        except Exception as e:
-
-            self.log(f"Send Error : {e}")
-
-    # -------------------------------------------------
     # START
     # -------------------------------------------------
     def send_start(self):
@@ -405,12 +287,13 @@ class MonitorGUI:
 
         self.port_box = ttk.Combobox(
             top,
-            width=20,
+            width=55,
             textvariable=self.port_var,
             state="readonly"
         )
 
         self.port_box.pack(side="left", padx=5)
+        self.port_box.bind("<Button-1>", lambda _event: self.refresh_ports())
 
         ttk.Button(
             top,
@@ -566,47 +449,39 @@ class MonitorGUI:
     #==================================================
     def refresh_ports(self):
 
+        selected = self.port_var.get()
         ports = self.serial.get_ports()
 
         self.port_box["values"] = ports
 
-        if len(ports) > 0:
+        if selected in ports:
+            self.port_var.set(selected)
+        elif len(ports) > 0:
             self.port_box.current(0)
 
     #==================================================
     # 接続
     #==================================================
     def connect(self):
-
-        if self.serial.ser is None:
-
-            port = self.port_var.get()
-
-            if port == "":
-                return
-
-            if self.serial.connect(port):
-
-                self.connect_button.config(
-                    text="Disconnect",
-                    command=self.disconnect
-                )
-
-        else:
-
+        if self.serial.connected:
             self.disconnect()
+            return
+        if self.serial.connecting:
+            return
+        port_label = self.port_var.get()
+        if not port_label:
+            return
+        if "(not recommended)" in port_label and not messagebox.askyesno(
+                "Unrecognized serial device",
+                "This port is not in the recommended USB-serial list. Continue anyway?"):
+            return
+        if self.serial.connect(port_label, expected_id="monitor"):
+            self.connect_button.config(text="Connecting...", state="disabled")
 
-    #==================================================
-    # 切断
-    #==================================================
     def disconnect(self):
-
         self.serial.disconnect()
+        self.connect_button.config(text="Connect", command=self.connect, state="normal")
 
-        self.connect_button.config(
-            text="Connect",
-            command=self.connect
-        )
 
     #==================================================
     # START
@@ -657,6 +532,18 @@ class MonitorGUI:
     # ログ更新
     #==================================================
     def update_log(self):
+
+        while True:
+            event = self.serial.get_event()
+            if event is None:
+                break
+            event_type, detail = event
+            if event_type == "connected":
+                self.connect_button.config(text="Disconnect", command=self.disconnect, state="normal")
+            elif event_type in ("connect_failed", "disconnected"):
+                self.connect_button.config(text="Connect", command=self.connect, state="normal")
+                if event_type == "connect_failed":
+                    messagebox.showwarning("Serial connection failed", detail)
 
         while True:
 

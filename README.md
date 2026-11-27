@@ -233,3 +233,11 @@ pio pkg install --global --platform platformio/espressif32
 ```powershell
 python -m pip install pyserial
 ```
+
+## シリアル通信モニタ
+
+4つの実験用モニタは共通のシリアル管理機構を使用し、接続時にファームウェア識別 (`WHOAMI`) を行います。ポートの診断や識別仕様は [`monitor/README.md`](monitor/README.md) を参照してください。ポート一覧の確認:
+
+```bash
+python monitor/list_ports.py
+```
