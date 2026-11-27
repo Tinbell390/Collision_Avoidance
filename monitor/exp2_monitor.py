@@ -8,13 +8,12 @@ exp2_monitor.py
 """
 import csv
 import queue
-import serial
 import os
 import sys
 import subprocess
-import serial.tools.list_ports
 
 import threading
+from serial_common import SerialManager as SharedSerialManager
 from datetime import datetime
 
 import tkinter as tk
@@ -47,142 +46,16 @@ ANALYSIS_SCRIPT = os.path.join(_PROJECT_ROOT, "tool", "exp2_analysis.py")
 # =====================================================
 # SerialManager
 # =====================================================
-class SerialManager:
-
+class SerialManager(SharedSerialManager):
     def __init__(self):
-
-        self.ser = None
-
-        self.running = False
-
-        self.receive_thread = None
-
-        # GUIへ渡すメッセージ
-        self.message_queue = queue.Queue()
-
-        # 保存されたCSVパスをGUIへ渡す(グラフ表示用)
+        super().__init__()
         self.plot_queue = queue.Queue()
-
-        # CSV受信
         self.receiving_csv = False
         self.current_vehicle = None
         self.csv_buffer = []
-
-        # 転送予定ファイル数の管理
         self.expected_count = None
         self.received_count = 0
 
-    # -------------------------------------------------
-    # GUIへログ表示
-    # -------------------------------------------------
-    def log(self, text):
-
-        print(text)
-
-        self.message_queue.put(text)
-
-    # -------------------------------------------------
-    # GUI用メッセージ取得
-    # -------------------------------------------------
-    def get_message(self):
-
-        try:
-            return self.message_queue.get_nowait()
-        except queue.Empty:
-            return None
-
-    # -------------------------------------------------
-    # GUI用:保存されたCSVファイルパス取得
-    # -------------------------------------------------
-    def get_plot_request(self):
-
-        try:
-            return self.plot_queue.get_nowait()
-        except queue.Empty:
-            return None
-
-    # -------------------------------------------------
-    # COMポート一覧取得
-    # -------------------------------------------------
-    @staticmethod
-    def get_ports():
-
-        ports = serial.tools.list_ports.comports()
-
-        return [port.device for port in ports]
-
-    # -------------------------------------------------
-    # 接続
-    # -------------------------------------------------
-    def connect(self, port, baudrate=115200):
-
-        if self.ser is not None:
-            return True
-
-        try:
-
-            self.ser = serial.Serial(
-                port=port,
-                baudrate=baudrate,
-                timeout=0.1
-            )
-
-            self.running = True
-
-            self.receive_thread = threading.Thread(
-                target=self.receive_loop,
-                daemon=True
-            )
-
-            self.receive_thread.start()
-
-            self.log(f"Connected : {port}")
-
-            return True
-
-        except Exception as e:
-
-            self.log(f"Connection Error : {e}")
-
-            return False
-
-    # -------------------------------------------------
-    # 切断
-    # -------------------------------------------------
-    def disconnect(self):
-
-        self.running = False
-
-        if self.ser is not None:
-
-            try:
-                self.ser.close()
-            except:
-                pass
-
-            self.ser = None
-
-        self.log("Disconnected")
-
-    # -------------------------------------------------
-    # コマンド送信
-    # -------------------------------------------------
-    def send(self, command):
-
-        if self.ser is None:
-            return
-
-        try:
-
-            self.ser.write((command + "\n").encode())
-
-            self.log("> " + command)
-
-        except Exception as e:
-
-            self.log(f"Send Error : {e}")
-
-    # -------------------------------------------------
     # START
     # -------------------------------------------------
     def send_start(self):
